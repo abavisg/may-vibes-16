@@ -16,3 +16,19 @@ pro_debate_task = Task(
     ),
     # agent=ava_agent # Agent is now assigned in debate_crew.py
 )
+
+# Add a rebuttal task for the Pro agent to respond to the Con agent's argument
+pro_rebuttal_task = Task(
+    description=(
+        "Review the Con agent's argument carefully. "
+        "This is your opportunity to rebut their counter-argument with your own follow-up point. "
+        "Your rebuttal should directly address the flaws or weaknesses in their argument. "
+        "Be focused and precise, offering a compelling response that strengthens your original position. "
+        "Your rebuttal should be 1-2 sentences maximum."
+    ),
+    expected_output=(
+        "A concise, focused rebuttal that directly addresses the Con agent's argument, "
+        "expressed in 1-2 sentences maximum."
+    ),
+    # agent is assigned in debate_crew.py
+)

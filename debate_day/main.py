@@ -2,8 +2,8 @@ import os
 import logging
 from crewai import LLM, Agent, Crew, Process, Task
 from crew.debate_crew import create_debate_crew
-from tasks.pro_task import pro_debate_task
-from tasks.con_task import con_debate_task
+from tasks.pro_task import pro_debate_task, pro_rebuttal_task
+from tasks.con_task import con_debate_task, con_rebuttal_task
 
 # --- Basic Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,6 +38,30 @@ def get_user_topic():
     
     return user_topic
 
+def get_num_rebuttals():
+    """Prompt the user for the number of rebuttals each side should have."""
+    print("\nHow many rebuttals should each side have?")
+    print("0 = Basic debate (one argument each + moderator)")
+    print("1 = Standard debate (arguments + one rebuttal each + moderator)")
+    print("2 = Extended debate (arguments + two rebuttals each + moderator)")
+    print("3 = Full debate (arguments + three rebuttals each + moderator)")
+    
+    while True:
+        try:
+            rebuttals = input("\nNumber of rebuttals [0-3]: ").strip()
+            
+            # Default to 1 rebuttal if empty
+            if not rebuttals:
+                return 1
+                
+            rebuttals = int(rebuttals)
+            if 0 <= rebuttals <= 3:
+                return rebuttals
+            else:
+                print("Please enter a number between 0 and 3.")
+        except ValueError:
+            print("Please enter a valid number.")
+
 def update_task_descriptions(topic):
     """Update the task descriptions with the user-provided topic."""
     # Update Pro task description
@@ -57,6 +81,27 @@ def update_task_descriptions(topic):
         f"Be concise and specific, explaining why the Pro agent's viewpoint is flawed or incomplete. "
         f"Your response should be 1-2 sentences long and present a compelling opposing perspective."
     )
+    
+    # Update Pro rebuttal task description
+    pro_rebuttal_task.description = (
+        f"This is a debate about {topic}. "
+        f"Review the Con agent's argument carefully. "
+        f"This is your opportunity to rebut their counter-argument with your own follow-up point. "
+        f"Your rebuttal should directly address the flaws or weaknesses in their argument. "
+        f"Be focused and precise, offering a compelling response that strengthens your original position. "
+        f"Your rebuttal should be 1-2 sentences maximum."
+    )
+    
+    # Update Con rebuttal task description
+    con_rebuttal_task.description = (
+        f"This is a debate about {topic}. "
+        f"Review the Pro agent's rebuttal to your initial argument. "
+        f"This is your opportunity to strengthen your position with a targeted counter-rebuttal. "
+        f"Your counter-rebuttal should address the weaknesses in the Pro agent's rebuttal and "
+        f"reinforce your original argument against the topic. "
+        f"Be focused and precise, delivering your strongest point in a compelling way. "
+        f"Your counter-rebuttal should be 1-2 sentences maximum."
+    )
 
 def run_debate():
     """Run the main debate application."""
@@ -65,13 +110,23 @@ def run_debate():
         debate_topic = get_user_topic()
         logger.info(f"Debate topic: {debate_topic}")
         
+        # Get number of rebuttals from user
+        num_rebuttals = get_num_rebuttals()
+        logger.info(f"Number of rebuttals per side: {num_rebuttals}")
+        
+        # Calculate total turns (initial arguments + rebuttals)
+        total_turns = num_rebuttals + 1
+        
         # Update task descriptions with the user-provided topic
         update_task_descriptions(debate_topic)
         
         # Create the debate crew with our configured LLM
-        crew = create_debate_crew(llm=ollama_llm)
+        crew = create_debate_crew(llm=ollama_llm, num_rebuttals=num_rebuttals)
 
         # Run the debate
+        print(f"\nStarting a debate on: {debate_topic}")
+        print(f"Format: Initial arguments + {num_rebuttals} rebuttal(s) per side")
+        print("=" * 50)
         result = crew.kickoff()
         return result
 
