@@ -5,14 +5,16 @@ from tasks.con_task import con_debate_task
 
 moderator_task = Task(
     description=(
-        "Analyze the preceding debate between the Pro and Con agents. Evaluate their arguments based on structure, "
-        "clarity, and logical consistency. Consider the relevance of their points to the original topic. "
-        "Based on your analysis, determine which agent presented a more compelling case."
+        "Evaluate the debate concisely using this structure:\n"
+        "1. Pro argument strength (1 sentence)\n"
+        "2. Con argument strength (1 sentence)\n"
+        "3. Winner declaration with brief rationale (1-2 sentences)"
     ),
     expected_output=(
-        "A summary of the debate, an evaluation of each agent's performance (Ava - Pro, Ben - Con), "
-        "a declared winner (either 'Ava (Pro)' or 'Ben (Con)'), and a clear rationale for your decision. "
-        "The rationale should highlight specific strengths and weaknesses observed in the arguments."
+        "A structured evaluation with exactly three parts:\n"
+        "1. Pro evaluation (1 sentence)\n"
+        "2. Con evaluation (1 sentence)\n"
+        "3. Winner: [Ava (Pro) or Ben (Con)] - [brief rationale]"
     ),
     # agent=mia_agent, # Agent is now assigned in debate_crew.py
     context=[pro_debate_task, con_debate_task]

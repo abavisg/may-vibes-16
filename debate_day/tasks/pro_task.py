@@ -5,9 +5,9 @@ from crewai import Task
 topic = "Remote work is better than office work"
 
 pro_debate_task = Task(
-    description=f"Give 1 brief point supporting the topic: '{topic}'. Keep it concise.",
+    description=f"Provide exactly one clear, focused argument supporting the topic: '{topic}'. Be direct and concise.",
     expected_output=(
-        "One single, concise argument in favor of the topic."
+        "A single, concise argument in favor of the topic, expressed in 1-2 sentences maximum."
     ),
     # agent=ava_agent # Agent is now assigned in debate_crew.py
 )

@@ -6,12 +6,12 @@ from tasks.pro_task import pro_debate_task # To access the context from pro_deba
 
 con_debate_task = Task(
     description=(
-        "Respond to the Pro agent's point with a counter-argument. "
-        "Address the point directly and provide a clear refutation."
+        "Provide exactly one clear, focused counter-argument to the Pro agent's point. "
+        "Address their argument directly and be concise."
     ),
     expected_output=(
-        "A counter-argument, directly addressing the Pro agent's point. "
-        "The counter-argument should be well-reasoned and clearly articulated."
+        "A single, concise counter-argument that directly addresses the Pro agent's point, "
+        "expressed in 1-2 sentences maximum."
     ),
     # agent=ben_agent, # Agent is now assigned in debate_crew.py
     context=[pro_debate_task]

@@ -30,24 +30,24 @@ def create_debate_crew(topic: str, llm=None):
 
     # Dynamically update the pro_debate_task's description with the topic
     pro_debate_task.description = (
-        f"Give 1 brief point supporting the topic: '{topic}'. Keep it concise."
+        f"Provide exactly one clear, focused argument supporting the topic: '{topic}'. Be direct and concise."
     )
+    
     # Assign agents to tasks
     pro_debate_task.agent = ava
     con_debate_task.agent = ben
     moderator_task.agent = mia
     
-    # Ensure context is still set for con_debate_task and moderator_task
-    # This should already be the case from their definitions but good to be mindful
-    con_debate_task.context = [pro_debate_task]
-    moderator_task.context = [pro_debate_task, con_debate_task]
+    # Set up task dependencies for proper debate flow
+    con_debate_task.context = [pro_debate_task]  # Con needs Pro's argument
+    moderator_task.context = [pro_debate_task, con_debate_task]  # Moderator needs both arguments
 
     logger.info("Tasks configured and agents assigned.")
     
     debate_crew = Crew(
         agents=[ava, ben, mia],
         tasks=[pro_debate_task, con_debate_task, moderator_task],
-        process=Process.sequential,
+        process=Process.sequential,  # Tasks must run in order: Pro -> Con -> Moderator
         verbose=True 
     )
     logger.info("Crew object instantiated.")

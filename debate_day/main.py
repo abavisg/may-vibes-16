@@ -6,28 +6,37 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 import litellm
 
 # --- Basic Logging Setup ---
+# Configure logging before anything else
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
+
+# Completely suppress all third-party loggers
+for logger_name in ['litellm', 'httpx', 'httpcore', 'litellm.utils', 'litellm.cost_calculator']:
+    third_party_logger = logging.getLogger(logger_name)
+    third_party_logger.setLevel(logging.ERROR)
+    third_party_logger.addHandler(logging.NullHandler())
+    third_party_logger.propagate = False
+
+# Get our logger
 logger = logging.getLogger(__name__)
 
-# Disable LiteLLM's provider list message
+# Disable LiteLLM's provider list message and cost calculation
 litellm.suppress_debug_info = True
+litellm.success_callback = None  # Disable success callback which triggers cost calculation
+os.environ["DISABLE_COST_CALCULATION"] = "true"
+os.environ["LITELLM_SUPPRESS_COST_CALCULATION"] = "true"
 
 # --- LLM Configuration for Ollama --- 
 logger.info("Starting LLM configuration for ChatOllama...")
 USE_HIGH_QUALITY_MODEL = True  # True for llama3, False for tinyllama
 OLLAMA_BASE_URL = 'http://localhost:11434'
-
-if USE_HIGH_QUALITY_MODEL:
-    SELECTED_MODEL_NAME = 'llama3'
-else:
-    SELECTED_MODEL_NAME = 'tinyllama'
+SELECTED_MODEL_NAME = 'llama3' if USE_HIGH_QUALITY_MODEL else 'tinyllama'
 
 print(f"Configuring ChatOllama model: {SELECTED_MODEL_NAME} via {OLLAMA_BASE_URL}")
 
 # Define the LLM configuration for ChatOllama
 llm_config = {
     "base_url": OLLAMA_BASE_URL,
-    "model": f"ollama/{SELECTED_MODEL_NAME}",  # Specify Ollama as the provider
+    "model": f"ollama/{SELECTED_MODEL_NAME}",
     "temperature": 0.1,  # Lower temperature for more focused responses
     "callbacks": [StreamingStdOutCallbackHandler()],
     "streaming": True,  # Enable streaming for better responsiveness
@@ -38,76 +47,55 @@ llm_config = {
 ollama_llm = ChatOllama(**llm_config)
 logger.info("ChatOllama instance created with StreamingStdOutCallbackHandler.")
 
-# --- Minimal CrewAI Test --- 
-def run_minimal_crewai_test():
-    from agents.pro_agent import create_pro_agent
-    from crewai import Crew, Task, Process
-
-    logger.info("[Minimal Test] Creating minimalist Pro agent with ChatOllama...")
-    try:
-        # Pass the ChatOllama instance to the agent creation function
-        minimal_ava = create_pro_agent(llm=ollama_llm) 
-        logger.info("[Minimal Test] Minimalist Pro agent created.")
-
-        minimal_task = Task(
-            description="Your task is to respond with exactly one word: 'Hello'. Do not add any explanation or additional text.",
-            expected_output="Hello",
-            agent=minimal_ava
-        )
-        logger.info("[Minimal Test] Minimal task created.")
-
-        minimal_crew = Crew(
-            agents=[minimal_ava],
-            tasks=[minimal_task],
-            process=Process.sequential,
-            verbose=True 
-        )
-        logger.info("[Minimal Test] Minimal crew created. Kicking off...")
-        result = minimal_crew.kickoff()
-        logger.info(f"[Minimal Test] Crew kickoff complete. Result: {result}")
-    except Exception as e:
-        logger.error(f"[Minimal Test] Error during minimal CrewAI test: {e}", exc_info=True)
-
 def run_debate():
-    logger.info("run_debate function started.")
-    print("\n🚀 Welcome to Debate Day! 🚀")
-    print("------------------------------------")
+    """Main function to run the debate application."""
+    print("\n" + "="*50)
+    print("🎯 Welcome to Debate Day! 🎯")
+    print("="*50 + "\n")
     
-    topic = input("Please enter the topic for the debate: ")
-    
-    if not topic.strip():
-        logger.warning("No topic entered. Exiting run_debate.")
-        print("No topic entered. Exiting.")
-        return
+    while True:
+        topic = input("Enter your debate topic (or 'q' to quit): ").strip()
+        
+        if topic.lower() == 'q':
+            print("\nThanks for using Debate Day! Goodbye! 👋\n")
+            break
+            
+        if not topic:
+            print("\n⚠️  Please enter a valid topic!\n")
+            continue
 
-    logger.info(f"Debate topic: '{topic}'")
-    print(f"\nOkay, setting up a debate on the topic: '{topic}'\n")
+        print("\n" + "-"*50)
+        print(f"📢 Starting debate on: '{topic}'")
+        print("-"*50 + "\n")
 
-    logger.info("Creating debate crew...")
-    debate_squad = create_debate_crew(topic=topic, llm=ollama_llm)
-    logger.info("Debate crew created.")
+        try:
+            # Create and run the debate
+            debate_squad = create_debate_crew(topic=topic, llm=ollama_llm)
+            print("\n🎬 The debate begins...\n")
+            result = debate_squad.kickoff()
 
-    print("\nKicking off the debate...\n")
-    logger.info("Kicking off crew...")
-    try:
-        result = debate_squad.kickoff()
-        logger.info("Crew kickoff complete. Result received.")
-
-        print("\n------------------------------------")
-        print("🏁 Debate Concluded! 🏁")
-        print("------------------------------------\n")
-        print("Final Output (Moderator's Assessment):\n")
-        print(result)
-    except Exception as e:
-        logger.error(f"Exception during crew kickoff: {e}", exc_info=True)
-        print(f"\nAn error occurred during the debate: {e}")
-        print(f"\nPlease ensure your Ollama server is running and the specified model ('{SELECTED_MODEL_NAME}') is available.")
-        print(f"CrewAI is configured to connect to Ollama via: {OLLAMA_BASE_URL} for model '{SELECTED_MODEL_NAME}'.")
-        print("You can pull models using 'ollama pull <model_name>' (e.g., 'ollama pull tinyllama').")
-        print("If issues persist, check the logs for detailed error messages.")
-    logger.info("run_debate function finished.")
+            # Display results
+            print("\n" + "="*50)
+            print("🏁 Debate Concluded!")
+            print("="*50 + "\n")
+            print("📋 Moderator's Assessment:\n")
+            print(result)
+            print("\n" + "-"*50 + "\n")
+            
+        except Exception as e:
+            logger.error(f"Error during debate: {e}", exc_info=True)
+            print(f"\n❌ An error occurred: {e}")
+            print(f"\n💡 Troubleshooting tips:")
+            print(f"  • Check if Ollama server is running at {OLLAMA_BASE_URL}")
+            print(f"  • Ensure model '{SELECTED_MODEL_NAME}' is available")
+            print(f"  • Try: ollama pull {SELECTED_MODEL_NAME}")
+            print("\n")
 
 if __name__ == "__main__":
-    logger.info("Script started as main.")
-    run_minimal_crewai_test()
-    logger.info("Script finished.")
+    try:
+        run_debate()
+    except KeyboardInterrupt:
+        print("\n\nDebate Day closed by user. Goodbye! 👋\n")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        print(f"\n❌ Unexpected error: {e}\n")
