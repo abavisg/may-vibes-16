@@ -158,6 +158,89 @@ def save_debate_history(topic, num_rebuttals, result):
         logger.error(f"Error saving debate history: {e}")
         return None
 
+def format_readable_output(result_str, topic, num_rebuttals):
+    """Format the debate results in a more readable way."""
+    if not isinstance(result_str, str):
+        result_str = str(result_str)
+        
+    lines = result_str.strip().split('\n')
+    
+    # Prepare formatted output
+    output = []
+    output.append("=" * 60)
+    output.append(f"DEBATE SUMMARY: {topic}")
+    output.append("=" * 60)
+    output.append("")
+    
+    # Extract the sections of the moderator's evaluation
+    current_section = "header"
+    sections = {
+        "header": [],      # Added the header section to fix KeyError
+        "pro_initial": [],
+        "con_initial": [],
+        "rebuttals": [],
+        "conclusion": []
+    }
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Try to identify sections based on content
+        if "Initial Pro argument" in line:
+            current_section = "pro_initial"
+            sections[current_section].append(line)
+        elif "Initial Con argument" in line:
+            current_section = "con_initial"
+            sections[current_section].append(line)
+        elif "rebuttal" in line.lower() or "Pro Round" in line or "Con Round" in line:
+            current_section = "rebuttals"
+            sections[current_section].append(line)
+        elif "Winner:" in line or "winner" in line.lower():
+            current_section = "conclusion"
+            sections[current_section].append(line)
+        else:
+            # Add to current section
+            sections[current_section].append(line)
+    
+    # Format the output
+    if sections["header"]:  # Add header section to output if it has content
+        output.extend(sections["header"])
+        output.append("")
+        
+    if sections["pro_initial"]:
+        output.append("PRO INITIAL ARGUMENT")
+        output.append("-" * 60)
+        output.extend(sections["pro_initial"])
+        output.append("")
+        
+    if sections["con_initial"]:
+        output.append("CON INITIAL ARGUMENT")
+        output.append("-" * 60)
+        output.extend(sections["con_initial"])
+        output.append("")
+    
+    if sections["rebuttals"]:
+        output.append("REBUTTALS")
+        output.append("-" * 60)
+        output.extend(sections["rebuttals"])
+        output.append("")
+    
+    if sections["conclusion"]:
+        output.append("CONCLUSION")
+        output.append("-" * 60)
+        output.extend(sections["conclusion"])
+        output.append("")
+    
+    # Add metadata
+    output.append("-" * 60)
+    output.append(f"Debate format: Initial arguments + {num_rebuttals} rebuttal(s) per side")
+    output.append(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    output.append("=" * 60)
+    
+    return "\n".join(output)
+
 def run_debate():
     """Run the main debate application."""
     try:
@@ -191,11 +274,11 @@ def run_debate():
         # Save the debate history
         save_debate_history(debate_topic, num_rebuttals, result)
         
-        # For backward compatibility, return the content of the formatted result
-        if isinstance(formatted_result, dict) and "content" in formatted_result:
-            return formatted_result["content"]
-            
-        return result
+        # Convert result to readable format
+        readable_result = format_readable_output(result, debate_topic, num_rebuttals)
+        
+        # For backward compatibility, return the formatted result
+        return readable_result
 
     except Exception as e:
         logger.error(f"Error running debate: {e}")
