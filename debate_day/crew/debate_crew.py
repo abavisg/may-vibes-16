@@ -1,26 +1,29 @@
 from crewai import Crew, Process
 # Import agent creation functions
-from agents.pro_agent import create_pro_agent
-from agents.con_agent import create_con_agent
-from agents.mod_agent import create_mod_agent
+from agents.pro_agent import create_pro_agent, format_pro_response
+from agents.con_agent import create_con_agent, format_con_response
+from agents.mod_agent import create_mod_agent, format_mod_evaluation
 
 # Import task blueprints (they will be assigned agents dynamically)
 from tasks.pro_task import pro_debate_task, pro_rebuttal_task
 from tasks.con_task import con_debate_task, con_rebuttal_task
 from tasks.mod_task import moderator_task
 
+from protocol import DebateContext, DebateProtocol, MessageType
+
 import logging
 import copy
 
 logger = logging.getLogger(__name__)
 
-def create_debate_crew(llm=None, num_rebuttals=1):
+def create_debate_crew(llm=None, num_rebuttals=1, topic=None):
     """Creates and configures the debate crew.
        Agents will use the provided LLM instance.
        
        Args:
            llm: The language model to use for the agents
            num_rebuttals: Number of rebuttals each side should have (default: 1)
+           topic: The topic of the debate (used to initialize the context)
     """
 
     logger.info("create_debate_crew called")
@@ -31,6 +34,14 @@ def create_debate_crew(llm=None, num_rebuttals=1):
     ava = create_pro_agent(llm=llm)
     ben = create_con_agent(llm=llm)
     mia = create_mod_agent(llm=llm)
+    
+    # Initialize the debate context
+    debate_context = DebateContext(topic or "Unknown Topic")
+    debate_context.max_rounds = num_rebuttals
+    
+    # Add the topic message to the context
+    if topic:
+        debate_context.add_message(DebateProtocol.topic_message(topic))
     
     # Assign agents to tasks
     pro_debate_task.agent = ava
@@ -95,5 +106,35 @@ def create_debate_crew(llm=None, num_rebuttals=1):
         process=Process.sequential,  # Tasks must run in sequence
         verbose=True 
     )
+    
     logger.info("Crew object instantiated.")
     return debate_crew
+
+def format_debate_results(result):
+    """Format debate results according to the Model Context Protocol.
+    
+    This function can be used after calling crew.kickoff() to format
+    the results in a standardized way.
+    
+    Args:
+        result: The raw result from the debate crew
+        
+    Returns:
+        Formatted result according to the protocol
+    """
+    # Convert result to a serializable format
+    if hasattr(result, '__dict__'):
+        # Handle objects by converting to dict first
+        try:
+            # Try to convert to dict if possible
+            result_dict = result.__dict__
+            return DebateProtocol.result_message(result_dict)
+        except:
+            # If that fails, use string representation
+            return DebateProtocol.result_message({"result": str(result)})
+    elif isinstance(result, dict):
+        # Already a dict, just pass it through
+        return DebateProtocol.result_message(result)
+    else:
+        # For simple string results or other types, convert to string and wrap
+        return DebateProtocol.result_message({"result": str(result)})

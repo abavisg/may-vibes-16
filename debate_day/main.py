@@ -1,9 +1,12 @@
 import os
 import logging
+import json
+from datetime import datetime
 from crewai import LLM, Agent, Crew, Process, Task
-from crew.debate_crew import create_debate_crew
+from crew.debate_crew import create_debate_crew, format_debate_results
 from tasks.pro_task import pro_debate_task, pro_rebuttal_task
 from tasks.con_task import con_debate_task, con_rebuttal_task
+from protocol import DebateContext, DebateProtocol
 
 # --- Basic Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -103,6 +106,58 @@ def update_task_descriptions(topic):
         f"Your counter-rebuttal should be 1-2 sentences maximum."
     )
 
+def save_debate_history(topic, num_rebuttals, result):
+    """Save the debate history to a file using Model Context Protocol format."""
+    try:
+        # Create a debate context
+        debate_context = DebateContext(topic)
+        debate_context.max_rounds = num_rebuttals
+        
+        # Add the topic message
+        debate_context.add_message(DebateProtocol.topic_message(topic))
+        
+        # Convert result to string if it's not already
+        result_str = str(result) if not isinstance(result, str) else result
+        
+        # Extract sections from the result (simplistic parsing)
+        lines = result_str.strip().split('\n')
+        
+        # Extract the winner (simplistic approach)
+        winner = "pro"  # Default
+        for line in lines:
+            if "Winner:" in line:
+                winner = "pro" if "Ava (Pro)" in line else "con"
+                break
+        
+        # Create a formatted result message with serializable content
+        formatted_result = DebateProtocol.result_message({
+            "topic": topic,
+            "num_rebuttals": num_rebuttals,
+            "result": result_str,
+            "winner": winner,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # Add the result to the context
+        debate_context.add_message(formatted_result)
+        
+        # Create the outputs directory if it doesn't exist
+        os.makedirs("outputs", exist_ok=True)
+        
+        # Create a filename based on the topic and timestamp
+        filename = f"outputs/debate_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        
+        # Save the debate context to a file
+        with open(filename, "w") as f:
+            json.dump(debate_context.to_dict(), f, indent=2)
+            
+        logger.info(f"Saved debate history to {filename}")
+        return filename
+        
+    except Exception as e:
+        logger.error(f"Error saving debate history: {e}")
+        return None
+
 def run_debate():
     """Run the main debate application."""
     try:
@@ -114,20 +169,32 @@ def run_debate():
         num_rebuttals = get_num_rebuttals()
         logger.info(f"Number of rebuttals per side: {num_rebuttals}")
         
-        # Calculate total turns (initial arguments + rebuttals)
-        total_turns = num_rebuttals + 1
-        
         # Update task descriptions with the user-provided topic
         update_task_descriptions(debate_topic)
         
-        # Create the debate crew with our configured LLM
-        crew = create_debate_crew(llm=ollama_llm, num_rebuttals=num_rebuttals)
+        # Create the debate crew with our configured LLM and topic
+        crew = create_debate_crew(
+            llm=ollama_llm, 
+            num_rebuttals=num_rebuttals,
+            topic=debate_topic
+        )
 
         # Run the debate
         print(f"\nStarting a debate on: {debate_topic}")
         print(f"Format: Initial arguments + {num_rebuttals} rebuttal(s) per side")
         print("=" * 50)
         result = crew.kickoff()
+        
+        # Format the result using our protocol
+        formatted_result = format_debate_results(result)
+        
+        # Save the debate history
+        save_debate_history(debate_topic, num_rebuttals, result)
+        
+        # For backward compatibility, return the content of the formatted result
+        if isinstance(formatted_result, dict) and "content" in formatted_result:
+            return formatted_result["content"]
+            
         return result
 
     except Exception as e:
@@ -141,6 +208,7 @@ if __name__ == "__main__":
         debate_result = run_debate()
         print("\nDebate Result:")
         print(debate_result)
+        print("\nThe debate has been saved to the outputs directory using the Model Context Protocol format.")
 
     except Exception as e:
         logger.error(f"Application error: {e}")

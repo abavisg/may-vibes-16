@@ -1,5 +1,6 @@
 import logging
 from crewai import Agent
+from protocol import DebateProtocol, MessageType
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +29,23 @@ def create_mod_agent(llm=None):
         Format your evaluation with the following structure:
         1. Initial Pro argument evaluation (1 sentence)
         2. Initial Con argument evaluation (1 sentence)
-        3. Evaluation of each rebuttal round (1 sentence per rebuttal)
+        3. For each rebuttal round:
+           - Pro rebuttal evaluation (1 sentence)
+           - Con rebuttal evaluation (1 sentence)
         4. Winner declaration with brief rationale (1-2 sentences)
         
         Be fair, impartial, and focus on the quality of arguments rather than your personal opinion on the topic.
+        
+        Your evaluation will be formatted according to the Model Context Protocol for standardized communication.
         """
     )
     
-    return agent 
+    return agent
+
+def format_mod_evaluation(content, winner, agent_id="mia"):
+    """Format the Moderator agent's evaluation according to the Model Context Protocol."""
+    return DebateProtocol.evaluation_message(
+        content=content,
+        winner=winner,
+        agent_id=agent_id
+    ) 

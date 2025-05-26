@@ -9,6 +9,7 @@ A lightweight multi-agent system where two AI agents debate a topic from opposin
 - **User-defined Topics** – Enter any debate topic for the AI agents to discuss
 - **Configurable Debate Depth** – Choose from 0-3 rebuttals per side to control debate complexity
 - **Agent-Based Debate** – A Pro agent argues in support of the topic, while a Con agent argues against it, and a Moderator evaluates both arguments
+- **Model Context Protocol (MCP)** – Standardized communication between agents for consistent formatting and improved interoperability
 - **Local LLM Support** – Uses Ollama for local LLM integration, supporting llama3 models for private, cost-effective AI
 - **Sequential Process Flow** – Pro → Con → [Multiple rounds of rebuttals] → Moderator for a structured debate format
 
@@ -19,6 +20,7 @@ A lightweight multi-agent system where two AI agents debate a topic from opposin
 - Python
 - [CrewAI](https://docs.crewai.com) for multi-agent orchestration
 - [Ollama](https://ollama.ai) for local LLM integration with llama3
+- Model Context Protocol for standardized agent communication
 
 ---
 
@@ -34,6 +36,9 @@ debate_day/
 │   └── mod_agent.py  # Defines the Moderator agent (Mia)
 ├── crew/
 │   └── debate_crew.py # Defines the CrewAI setup and how agents collaborate
+├── protocol/
+│   ├── __init__.py   # Protocol package initialization
+│   └── mcp.py        # Model Context Protocol implementation
 ├── tasks/
 │   ├── pro_task.py   # Defines the task for the Pro agent
 │   ├── con_task.py   # Defines the task for the Con agent
@@ -80,6 +85,24 @@ debate_day/
 
 ---
 
+## Model Context Protocol
+
+The application uses a lightweight implementation of the Model Context Protocol (MCP) to standardize communication between agents. This provides several benefits:
+
+- **Consistent Message Format**: All agent communications follow a standardized structure
+- **Typed Messages**: Different message types (arguments, rebuttals, evaluations) are clearly distinguished
+- **Metadata Support**: Additional context can be attached to each message
+- **Round Tracking**: Messages are associated with specific debate rounds
+- **Improved Coordination**: Agents can better understand and respond to each other
+
+The protocol is implemented in the `protocol/mcp.py` module and provides:
+
+1. `MessageType` - Enumeration of different message types
+2. `DebateProtocol` - Core protocol implementation with message formatting and parsing
+3. `DebateContext` - Context manager for the debate session
+
+---
+
 ## Example Topics
 
 Here are some example debate topics you can try:
@@ -98,6 +121,7 @@ To modify the application's behavior:
 - Update the task descriptions in the task files (pro_task.py, con_task.py, mod_task.py)
 - Change the LLM model in main.py (e.g., from llama3 to another Ollama-supported model)
 - Adjust the maximum number of rebuttals in main.py (currently capped at 3)
+- Extend the Model Context Protocol in protocol/mcp.py to add new message types or features
 
 ---
 
