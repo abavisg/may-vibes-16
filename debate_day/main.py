@@ -1,25 +1,35 @@
 from crew.debate_crew import create_debate_crew
 import os
+# import langchain # No longer needed
+# from langchain_community.chat_models import ChatOllama # No longer needed
 
-# --- LLM Configuration for Ollama ---
-# Set this flag to True to use the higher quality model (e.g., llama3),
-# or False to use a faster model for development (e.g., tinyllama).
+# --- LLM Configuration for Ollama via Environment Variables ---
+# CrewAI (via LiteLLM) will use these to configure Ollama.
 USE_HIGH_QUALITY_MODEL = False  # True for llama3, False for tinyllama
 
-OLLAMA_API_BASE = 'http://localhost:11434/v1'
+OLLAMA_API_BASE_V1 = 'http://localhost:11434/v1' # For OPENAI_API_BASE
 
 if USE_HIGH_QUALITY_MODEL:
-    OLLAMA_MODEL_NAME = 'llama3' 
-    print(f"Using high-quality Ollama model: {OLLAMA_MODEL_NAME}")
+    SELECTED_MODEL_NAME = 'llama3'
 else:
-    OLLAMA_MODEL_NAME = 'tinyllama'
-    print(f"Using development Ollama model: {OLLAMA_MODEL_NAME}")
+    SELECTED_MODEL_NAME = 'tinyllama'
 
-# Set environment variables for CrewAI to use Ollama
-os.environ["OPENAI_API_BASE"] = OLLAMA_API_BASE
-os.environ["OPENAI_MODEL_NAME"] = OLLAMA_MODEL_NAME
-os.environ["OPENAI_API_KEY"] = 'ollama'  # Required by CrewAI, can be any non-empty string for Ollama
+print(f"Configuring Ollama model via environment variables: {SELECTED_MODEL_NAME} via {OLLAMA_API_BASE_V1}")
+
+# Set environment variables for CrewAI/LiteLLM to use Ollama
+os.environ["OPENAI_API_BASE"] = OLLAMA_API_BASE_V1
+os.environ["OPENAI_MODEL_NAME"] = SELECTED_MODEL_NAME
+os.environ["OPENAI_API_KEY"] = 'ollama'  # Required, can be any non-empty string for Ollama
+
+# For more detailed logs from LiteLLM if issues persist:
+# os.environ["LITELLM_DEBUG"] = "1"
 # ---
+
+# llm_config and ollama_llm instance are no longer needed here
+# llm_config = { ... }
+# ollama_llm = ChatOllama(**llm_config)
+
+# langchain.debug = True # No longer needed as we are not using ChatOllama directly
 
 def run_debate():
     """
@@ -37,12 +47,10 @@ def run_debate():
 
     print(f"\nOkay, setting up a debate on the topic: '{topic}'\n")
 
-    # Create the debate crew
-    debate_squad = create_debate_crew(topic)
+    # Create the debate crew (it will use the globally configured LLM)
+    debate_squad = create_debate_crew(topic=topic)
 
     print("\nKicking off the debate...\n")
-    # The verbose output from the crew (set to 2) will print the turn-by-turn debate.
-    # The result variable will hold the output of the final task.
     try:
         result = debate_squad.kickoff()
 
@@ -53,9 +61,10 @@ def run_debate():
         print(result)
     except Exception as e:
         print(f"\nAn error occurred during the debate: {e}")
-        print("\nPlease ensure your Ollama server is running and the specified model is available.")
-        print(f"Attempted to use model: {OLLAMA_MODEL_NAME} via {OLLAMA_API_BASE}")
+        print("\nPlease ensure your Ollama server is running and the specified model ('{SELECTED_MODEL_NAME}') is available.")
+        print(f"CrewAI is configured to connect to Ollama via: {OLLAMA_API_BASE_V1} for model '{SELECTED_MODEL_NAME}'.")
         print("You can pull models using 'ollama pull <model_name>' (e.g., 'ollama pull tinyllama').")
+        print("If issues persist, try uncommenting LITELLM_DEBUG in main.py for more logs.")
 
 if __name__ == "__main__":
     run_debate()

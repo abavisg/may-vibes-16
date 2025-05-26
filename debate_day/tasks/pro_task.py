@@ -1,13 +1,13 @@
 from crewai import Task
-from agents.pro_agent import ava_agent # Assuming pro_agent.py is in agents/
+# from agents.pro_agent import ava_agent # This import is no longer needed and causes an error
 
-# Hardcoded topic for now
+# Hardcoded topic for now - this will be overridden by create_debate_crew
 topic = "Remote work is better than office work"
 
 pro_debate_task = Task(
-    description=f"Give 3 strong points supporting the topic: '{topic}'. Focus on clarity and strong reasoning.",
+    description=f"Give 1 brief point supporting the topic: '{topic}'. Keep it concise.",
     expected_output=(
-        "A list of 3 distinct and well-reasoned arguments in favor of the topic. Each argument should be clearly stated."
+        "One single, concise argument in favor of the topic."
     ),
-    agent=ava_agent
+    # agent=ava_agent # Agent is now assigned in debate_crew.py
 )

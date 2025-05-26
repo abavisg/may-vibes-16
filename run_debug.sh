@@ -14,10 +14,13 @@ cd "$APP_DIR" || {
 }
 
 echo ""
+# export LANGCHAIN_DEBUG=true # No longer explicitly using LangChain direct debug for this setup
+
 echo "Running Debate Day app (main.py)..."
 echo "(Using Ollama model: tinyllama by default. Edit debate_day/main.py to change.)"
+echo "(LLM configured via environment variables set in main.py)"
 echo "-----------------------------------------------------------------"
-python3 main.py # Assuming python3 is preferred, can be changed to python if needed
+python3 main.py
 
 echo "-----------------------------------------------------------------"
 echo "Debate Day app finished." 
