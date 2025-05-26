@@ -49,7 +49,7 @@ def run_debate():
         print("\n------------------------------------")
         print("🏁 Debate Concluded! 🏁")
         print("------------------------------------\n")
-        print("Final Output (Ben's counter-arguments):\n")
+        print("Final Output (Moderator's Assessment):\n")
         print(result)
     except Exception as e:
         print(f"\nAn error occurred during the debate: {e}")
