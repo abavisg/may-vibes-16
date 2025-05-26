@@ -9,14 +9,24 @@ from tasks.pro_task import pro_debate_task
 from tasks.con_task import con_debate_task
 from tasks.mod_task import moderator_task
 
-def create_debate_crew(topic: str):
-    """Creates and configures the debate crew with a dynamic topic.
-       Agents will use global LLM configuration (e.g., from environment variables)."""
+import logging
 
-    # Create agents (they will use the LLM configured globally via env vars)
-    ava = create_pro_agent()
-    ben = create_con_agent()
-    mia = create_mod_agent()
+logger = logging.getLogger(__name__)
+
+def create_debate_crew(topic: str, llm=None):
+    """Creates and configures the debate crew with a dynamic topic.
+       Agents will use the provided LLM instance."""
+
+    logger.info(f"create_debate_crew called with topic: '{topic}'")
+    if llm is None:
+        logger.warning("No LLM provided to create_debate_crew. Agents may not function properly.")
+        
+    # Create agents with the provided LLM
+    ava = create_pro_agent(llm=llm)
+    ben = create_con_agent(llm=llm)
+    mia = create_mod_agent(llm=llm)
+
+    logger.info("Agents created: Ava, Ben, Mia.")
 
     # Dynamically update the pro_debate_task's description with the topic
     pro_debate_task.description = (
@@ -32,10 +42,13 @@ def create_debate_crew(topic: str):
     con_debate_task.context = [pro_debate_task]
     moderator_task.context = [pro_debate_task, con_debate_task]
 
+    logger.info("Tasks configured and agents assigned.")
+    
     debate_crew = Crew(
         agents=[ava, ben, mia],
         tasks=[pro_debate_task, con_debate_task, moderator_task],
         process=Process.sequential,
         verbose=True 
     )
+    logger.info("Crew object instantiated.")
     return debate_crew

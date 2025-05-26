@@ -7,6 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 
 APP_DIR="$SCRIPT_DIR/debate_day"
 
+# export LITELLM_LOG="DEBUG" # No longer needed, LangChain debug is set in main.py
+# echo "LITELLM_LOG set to DEBUG by run_debug.sh" # No longer needed
+
 echo "Navigating to application directory: $APP_DIR"
 cd "$APP_DIR" || {
     echo "Error: Could not navigate to $APP_DIR. Make sure the debate_day directory exists relative to this script."

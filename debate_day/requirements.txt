@@ -1,3 +1,7 @@
-crewai
-langchain
-langchain-community
+crewai>=0.12.2
+langchain>=0.1.0
+langchain-community>=0.0.13
+langchain-core>=0.1.12
+litellm>=1.30.7
+pydantic>=2.6.3
+typing-extensions>=4.10.0
