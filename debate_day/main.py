@@ -4,9 +4,11 @@ import json
 from datetime import datetime
 from crewai import LLM, Agent, Crew, Process, Task
 from crew.debate_crew import create_debate_crew, format_debate_results
-from tasks.pro_task import pro_debate_task, pro_rebuttal_task
-from tasks.con_task import con_debate_task, con_rebuttal_task
+from tasks.pro_task import pro_debate_task, pro_rebuttal_task, pro_task
+from tasks.con_task import con_debate_task, con_rebuttal_task, con_task
+from tasks.mod_task import mod_task
 from protocol import DebateContext, DebateProtocol
+from controller import DebateController, AgentTurn
 
 # --- Basic Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -106,50 +108,18 @@ def update_task_descriptions(topic):
         f"Your counter-rebuttal should be 1-2 sentences maximum."
     )
 
-def save_debate_history(topic, num_rebuttals, result):
+def save_debate_history(controller):
     """Save the debate history to a file using Model Context Protocol format."""
     try:
-        # Create a debate context
-        debate_context = DebateContext(topic)
-        debate_context.max_rounds = num_rebuttals
-        
-        # Add the topic message
-        debate_context.add_message(DebateProtocol.topic_message(topic))
-        
-        # Convert result to string if it's not already
-        result_str = str(result) if not isinstance(result, str) else result
-        
-        # Extract sections from the result (simplistic parsing)
-        lines = result_str.strip().split('\n')
-        
-        # Extract the winner (simplistic approach)
-        winner = "pro"  # Default
-        for line in lines:
-            if "Winner:" in line:
-                winner = "pro" if "Ava (Pro)" in line else "con"
-                break
-        
-        # Create a formatted result message with serializable content
-        formatted_result = DebateProtocol.result_message({
-            "topic": topic,
-            "num_rebuttals": num_rebuttals,
-            "result": result_str,
-            "winner": winner,
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        # Add the result to the context
-        debate_context.add_message(formatted_result)
-        
         # Create the outputs directory if it doesn't exist
         os.makedirs("outputs", exist_ok=True)
         
         # Create a filename based on the topic and timestamp
         filename = f"outputs/debate_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         
-        # Save the debate context to a file
+        # Save the controller state to a file
         with open(filename, "w") as f:
-            json.dump(debate_context.to_dict(), f, indent=2)
+            json.dump(controller.to_dict(), f, indent=2)
             
         logger.info(f"Saved debate history to {filename}")
         return filename
@@ -158,12 +128,10 @@ def save_debate_history(topic, num_rebuttals, result):
         logger.error(f"Error saving debate history: {e}")
         return None
 
-def format_readable_output(result_str, topic, num_rebuttals):
-    """Format the debate results in a more readable way."""
-    if not isinstance(result_str, str):
-        result_str = str(result_str)
-        
-    lines = result_str.strip().split('\n')
+def format_debate_transcript(controller):
+    """Format the debate transcript in a readable way."""
+    topic = controller.topic
+    max_rounds = controller.max_rounds
     
     # Prepare formatted output
     output = []
@@ -172,77 +140,63 @@ def format_readable_output(result_str, topic, num_rebuttals):
     output.append("=" * 60)
     output.append("")
     
-    # Extract the sections of the moderator's evaluation
-    current_section = "header"
-    sections = {
-        "header": [],      # Added the header section to fix KeyError
-        "pro_initial": [],
-        "con_initial": [],
-        "rebuttals": [],
-        "conclusion": []
-    }
+    # Get all messages by type
+    pro_messages = controller.context.get_messages_for_side("pro")
+    con_messages = controller.context.get_messages_for_side("con")
+    mod_messages = controller.context.get_messages_for_agent("mia")
     
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        # Try to identify sections based on content
-        if "Initial Pro argument" in line:
-            current_section = "pro_initial"
-            sections[current_section].append(line)
-        elif "Initial Con argument" in line:
-            current_section = "con_initial"
-            sections[current_section].append(line)
-        elif "rebuttal" in line.lower() or "Pro Round" in line or "Con Round" in line:
-            current_section = "rebuttals"
-            sections[current_section].append(line)
-        elif "Winner:" in line or "winner" in line.lower():
-            current_section = "conclusion"
-            sections[current_section].append(line)
-        else:
-            # Add to current section
-            sections[current_section].append(line)
-    
-    # Format the output
-    if sections["header"]:  # Add header section to output if it has content
-        output.extend(sections["header"])
-        output.append("")
-        
-    if sections["pro_initial"]:
+    # Format initial arguments
+    if pro_messages and len(pro_messages) > 0:
         output.append("PRO INITIAL ARGUMENT")
         output.append("-" * 60)
-        output.extend(sections["pro_initial"])
+        output.append(pro_messages[0]["content"])
         output.append("")
-        
-    if sections["con_initial"]:
+    
+    if con_messages and len(con_messages) > 0:
         output.append("CON INITIAL ARGUMENT")
         output.append("-" * 60)
-        output.extend(sections["con_initial"])
+        output.append(con_messages[0]["content"])
         output.append("")
     
-    if sections["rebuttals"]:
+    # Format rebuttals
+    if max_rounds > 0 and (len(pro_messages) > 1 or len(con_messages) > 1):
         output.append("REBUTTALS")
         output.append("-" * 60)
-        output.extend(sections["rebuttals"])
-        output.append("")
+        
+        for round_num in range(1, max_rounds + 1):
+            # Find pro rebuttal for this round
+            pro_rebuttal = next((msg for msg in pro_messages if msg.get("round") == round_num), None)
+            # Find con rebuttal for this round
+            con_rebuttal = next((msg for msg in con_messages if msg.get("round") == round_num), None)
+            
+            if pro_rebuttal or con_rebuttal:
+                output.append(f"Round {round_num}:")
+                
+                if pro_rebuttal:
+                    output.append(f"Pro: {pro_rebuttal['content']}")
+                
+                if con_rebuttal:
+                    output.append(f"Con: {con_rebuttal['content']}")
+                
+                output.append("")
     
-    if sections["conclusion"]:
+    # Format moderator evaluation
+    if mod_messages:
         output.append("CONCLUSION")
         output.append("-" * 60)
-        output.extend(sections["conclusion"])
+        output.append(mod_messages[0]["content"])
         output.append("")
     
     # Add metadata
     output.append("-" * 60)
-    output.append(f"Debate format: Initial arguments + {num_rebuttals} rebuttal(s) per side")
+    output.append(f"Debate format: Initial arguments + {max_rounds} rebuttal(s) per side")
     output.append(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     output.append("=" * 60)
     
     return "\n".join(output)
 
 def run_debate():
-    """Run the main debate application."""
+    """Run the main debate application using DebateController."""
     try:
         # Get debate topic from user
         debate_topic = get_user_topic()
@@ -252,33 +206,58 @@ def run_debate():
         num_rebuttals = get_num_rebuttals()
         logger.info(f"Number of rebuttals per side: {num_rebuttals}")
         
-        # Update task descriptions with the user-provided topic
-        update_task_descriptions(debate_topic)
+        # Create the debate controller
+        controller = DebateController(topic=debate_topic, max_rounds=num_rebuttals)
         
-        # Create the debate crew with our configured LLM and topic
-        crew = create_debate_crew(
-            llm=ollama_llm, 
-            num_rebuttals=num_rebuttals,
-            topic=debate_topic
-        )
-
-        # Run the debate
+        # Run the debate loop
         print(f"\nStarting a debate on: {debate_topic}")
         print(f"Format: Initial arguments + {num_rebuttals} rebuttal(s) per side")
         print("=" * 50)
-        result = crew.kickoff()
         
-        # Format the result using our protocol
-        formatted_result = format_debate_results(result)
+        # Initialize the turn to Pro if not already set
+        controller.turn = AgentTurn.PRO
+        
+        while True:
+            # Get the current agent to act
+            current_agent = controller.turn
+            round_number = controller.round_number
+            
+            # If we're done, exit the loop
+            if current_agent == AgentTurn.DONE:
+                break
+            
+            # Get context for the agent
+            context = controller.get_all_messages()
+            
+            # Generate response based on agent type
+            if current_agent == AgentTurn.PRO:
+                print(f"Round {round_number}: Pro agent (Ava) is thinking...")
+                response = pro_task(context, llm=ollama_llm)
+            elif current_agent == AgentTurn.CON:
+                print(f"Round {round_number}: Con agent (Ben) is thinking...")
+                response = con_task(context, llm=ollama_llm)
+            elif current_agent == AgentTurn.MOD:
+                print(f"Moderator (Mia) is evaluating the debate...")
+                response = mod_task(context, llm=ollama_llm)
+            
+            # Add the response to the controller
+            controller.add_message(response)
+            
+            # Print the response content
+            print(f"{current_agent.value.capitalize()}: {response['content']}")
+            print("-" * 50)
+            
+            # Advance to the next agent
+            # The next_agent method handles transitioning between agents and rounds
+            controller.next_agent()
         
         # Save the debate history
-        save_debate_history(debate_topic, num_rebuttals, result)
+        save_debate_history(controller)
         
-        # Convert result to readable format
-        readable_result = format_readable_output(result, debate_topic, num_rebuttals)
+        # Format the debate transcript
+        transcript = format_debate_transcript(controller)
         
-        # For backward compatibility, return the formatted result
-        return readable_result
+        return transcript
 
     except Exception as e:
         logger.error(f"Error running debate: {e}")
