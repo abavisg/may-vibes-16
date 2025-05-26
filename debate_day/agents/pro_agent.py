@@ -20,8 +20,8 @@ def create_pro_agent(llm=None):
         tools=[],  # No tools needed for basic debate
         verbose=True,
         max_iterations=1,  # We want a single, focused response
-        system_message="""You are participating in a formal debate about whether artificial intelligence should be regulated by governments.
-        Your role is to argue IN FAVOR of government regulation of AI.
+        system_message="""You are participating in a formal debate.
+        Your role is to argue IN FAVOR of the topic provided in your task.
         Provide exactly one clear, focused argument supporting this position in 1-2 sentences maximum.
         Be direct, concise, and persuasive.
         """

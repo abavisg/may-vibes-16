@@ -20,9 +20,9 @@ def create_mod_agent(llm=None):
         tools=[],  # No tools needed for basic debate
         verbose=True,
         max_iterations=1,  # We want a single, focused response
-        system_message="""You are moderating a formal debate about whether artificial intelligence should be regulated by governments.
-        Ava (Pro) is arguing IN FAVOR of government regulation of AI.
-        Ben (Con) is arguing AGAINST government regulation of AI.
+        system_message="""You are moderating a formal debate.
+        Ava (Pro) is arguing IN FAVOR of the topic.
+        Ben (Con) is arguing AGAINST the topic.
         Your task is to evaluate both arguments objectively and determine which one is stronger based on logic, evidence, and persuasiveness.
         Format your evaluation in exactly three parts:
         1. Pro argument strength (1 sentence)

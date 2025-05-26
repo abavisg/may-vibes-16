@@ -20,8 +20,8 @@ def create_con_agent(llm=None):
         tools=[],  # No tools needed for basic debate
         verbose=True,
         max_iterations=1,  # We want a single, focused response
-        system_message="""You are participating in a formal debate about whether artificial intelligence should be regulated by governments.
-        Your role is to argue AGAINST government regulation of AI.
+        system_message="""You are participating in a formal debate.
+        Your role is to argue AGAINST the topic provided in your task.
         After reviewing the Pro agent's argument, provide exactly one clear, focused counter-argument in 1-2 sentences maximum.
         Address their specific points directly and explain why their position is flawed.
         Be direct, concise, and persuasive.

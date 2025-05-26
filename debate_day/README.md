@@ -6,9 +6,10 @@ A lightweight multi-agent system where two AI agents debate a topic from opposin
 
 ## Features
 
-- **Agent-Based Debate** – A Pro agent argues in support of the topic, while a Con agent argues against it, and a Moderator evaluates both arguments.
-- **Local LLM Support** – Uses Ollama for local LLM integration, supporting llama3 models for private, cost-effective AI.
-- **Sequential Process Flow** – Pro -> Con -> Moderator for a structured debate format.
+- **User-defined Topics** – Enter any debate topic for the AI agents to discuss
+- **Agent-Based Debate** – A Pro agent argues in support of the topic, while a Con agent argues against it, and a Moderator evaluates both arguments
+- **Local LLM Support** – Uses Ollama for local LLM integration, supporting llama3 models for private, cost-effective AI
+- **Sequential Process Flow** – Pro -> Con -> Moderator for a structured debate format
 
 ---
 
@@ -64,17 +65,28 @@ debate_day/
    ```
    python main.py
    ```
-
-3. The system will execute a debate on whether artificial intelligence should be regulated by governments:
-   - The Pro agent (Ava) will argue in favor of regulation
+3. When prompted, enter a debate topic (or press Enter to use the default topic)
+4. The system will execute a debate on your chosen topic:
+   - The Pro agent (Ava) will argue in favor of the topic
    - The Con agent (Ben) will present counterarguments
    - The Moderator (Mia) will evaluate both positions and declare a winner
 
 ---
 
+## Example Topics
+
+Here are some example debate topics you can try:
+- "Should artificial intelligence be regulated by governments?"
+- "Is remote work better than working in an office?"
+- "Should universities prioritize online courses over traditional in-person classes?"
+- "Is universal basic income a viable economic policy?"
+- "Should social media platforms be held liable for user content?"
+
+---
+
 ## Customization
 
-To modify the debate topic or agent behaviors:
+To modify the application's behavior:
 - Edit the system prompts in the agent files (pro_agent.py, con_agent.py, mod_agent.py)
 - Update the task descriptions in the task files (pro_task.py, con_task.py, mod_task.py)
 - Change the LLM model in main.py (e.g., from llama3 to another Ollama-supported model)

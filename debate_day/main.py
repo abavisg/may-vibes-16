@@ -3,6 +3,7 @@ import logging
 from crewai import LLM, Agent, Crew, Process, Task
 from crew.debate_crew import create_debate_crew
 from tasks.pro_task import pro_debate_task
+from tasks.con_task import con_debate_task
 
 # --- Basic Logging Setup ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
@@ -26,13 +27,51 @@ ollama_llm = LLM(
     temperature=0.1,  # Lower temperature for more focused responses
 )
 
+def get_user_topic():
+    """Prompt the user for a debate topic."""
+    print("\n=== Debate Day ===")
+    print("Enter a debate topic for the AI agents to discuss.")
+    print("Example: 'Did we ever go to the moon?'")
+    user_topic = input("\nDebate topic: ")
+    
+    # Provide a default if the user enters nothing
+    if not user_topic.strip():
+        user_topic = "Did we ever go to the moon?"
+        print(f"Using default topic: {user_topic}")
+    
+    return user_topic
+
+def update_task_descriptions(topic):
+    """Update the task descriptions with the user-provided topic."""
+    # Update Pro task description
+    pro_debate_task.description = (
+        f"This is a debate about {topic}. "
+        f"Your role is to argue IN FAVOR of this position. "
+        f"Provide exactly one clear, focused argument supporting the topic. "
+        f"Be direct and concise, presenting your argument in 1-2 sentences that are compelling and evidence-based."
+    )
+    
+    # Update Con task description
+    con_debate_task.description = (
+        f"This is a debate about {topic}. "
+        f"Your role is to argue AGAINST this position. "
+        f"Review the Pro agent's argument carefully and then provide exactly one clear, focused counter-argument. "
+        f"Your counter-argument should directly address and oppose the Pro agent's position. "
+        f"Be concise and specific, explaining why the Pro agent's viewpoint is flawed or incomplete. "
+        f"Your response should be 1-2 sentences long and present a compelling opposing perspective."
+    )
+
 def run_debate():
     """Run the main debate application."""
     logger.info("Starting debate application...")
     try:
-        # Define the debate topic
-        debate_topic = "Should artificial intelligence be regulated by governments?"
+        # Get debate topic from user
+        debate_topic = get_user_topic()
         logger.info(f"Debate topic: {debate_topic}")
+        
+        # Update task descriptions with the user-provided topic
+        update_task_descriptions(debate_topic)
+        logger.info("Task descriptions updated with user topic.")
         
         # Create the debate crew with our configured LLM
         crew = create_debate_crew(llm=ollama_llm)
