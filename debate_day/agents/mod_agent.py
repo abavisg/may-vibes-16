@@ -5,7 +5,6 @@ logger = logging.getLogger(__name__)
 
 def create_mod_agent(llm=None):
     """Creates the Moderator agent (Mia) with the specified LLM."""
-    logger.info("create_mod_agent function called.")
     
     if llm is None:
         raise ValueError("LLM instance must be provided for agent creation")
@@ -31,5 +30,4 @@ def create_mod_agent(llm=None):
         """
     )
     
-    logger.info("Moderator agent created.")
     return agent 

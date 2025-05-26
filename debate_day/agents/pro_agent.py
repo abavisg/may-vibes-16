@@ -5,7 +5,6 @@ logger = logging.getLogger(__name__)
 
 def create_pro_agent(llm=None):
     """Creates the Pro agent (Ava) with the specified LLM."""
-    logger.info("create_pro_agent function called.")
     
     if llm is None:
         raise ValueError("LLM instance must be provided for agent creation")
@@ -27,5 +26,4 @@ def create_pro_agent(llm=None):
         """
     )
     
-    logger.info("Pro agent created.")
     return agent

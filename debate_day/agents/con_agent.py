@@ -5,7 +5,6 @@ logger = logging.getLogger(__name__)
 
 def create_con_agent(llm=None):
     """Creates the Con agent (Ben) with the specified LLM."""
-    logger.info("create_con_agent function called.")
     
     if llm is None:
         raise ValueError("LLM instance must be provided for agent creation")
@@ -28,5 +27,4 @@ def create_con_agent(llm=None):
         """
     )
     
-    logger.info("Con agent created.")
     return agent
