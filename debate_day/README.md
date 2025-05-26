@@ -10,6 +10,8 @@ A lightweight multi-agent system where two AI agents debate a topic from opposin
 - **Configurable Debate Depth** – Choose from 0-3 rebuttals per side to control debate complexity
 - **Agent-Based Debate** – A Pro agent argues in support of the topic, while a Con agent argues against it, and a Moderator evaluates both arguments
 - **Model Context Protocol (MCP)** – Standardized communication between agents for consistent formatting and improved interoperability
+- **Readable Output Format** – Results are formatted in a structured, easy-to-read layout with clear sections
+- **Debate History** – Automatically saves debates to JSON files using the MCP format for later reference
 - **Local LLM Support** – Uses Ollama for local LLM integration, supporting llama3 models for private, cost-effective AI
 - **Sequential Process Flow** – Pro → Con → [Multiple rounds of rebuttals] → Moderator for a structured debate format
 
@@ -43,6 +45,7 @@ debate_day/
 │   ├── pro_task.py   # Defines the task for the Pro agent
 │   ├── con_task.py   # Defines the task for the Con agent
 │   └── mod_task.py   # Defines the task for the Moderator
+├── outputs/          # Saved debate histories in JSON format
 ├── main.py           # Orchestrates the debate
 ├── requirements.txt  # Lists project dependencies
 └── README.md         # This file
@@ -82,6 +85,43 @@ debate_day/
    - The Con agent (Ben) will present counterarguments
    - If using rebuttals, Ava and Ben will take turns responding to each other's points
    - The Moderator (Mia) will evaluate all points and declare a winner
+6. Results will be displayed in a structured, readable format with clear sections for each argument
+7. The debate will also be saved to the `outputs/` directory in JSON format using the MCP protocol
+
+---
+
+## Output Format
+
+The application formats debate results into a structured, readable layout:
+
+```
+============================================================
+DEBATE SUMMARY: [Your Topic]
+============================================================
+
+PRO INITIAL ARGUMENT
+------------------------------------------------------------
+[Pro agent's initial argument appears here]
+
+CON INITIAL ARGUMENT
+------------------------------------------------------------
+[Con agent's initial argument appears here]
+
+REBUTTALS
+------------------------------------------------------------
+[All rebuttals from both sides appear here]
+
+CONCLUSION
+------------------------------------------------------------
+[Moderator's evaluation and winner declaration]
+
+------------------------------------------------------------
+Debate format: Initial arguments + N rebuttal(s) per side
+Timestamp: YYYY-MM-DD HH:MM:SS
+============================================================
+```
+
+All debates are also saved as JSON files in the `outputs/` directory with the full MCP message structure for later reference or analysis.
 
 ---
 
@@ -122,6 +162,7 @@ To modify the application's behavior:
 - Change the LLM model in main.py (e.g., from llama3 to another Ollama-supported model)
 - Adjust the maximum number of rebuttals in main.py (currently capped at 3)
 - Extend the Model Context Protocol in protocol/mcp.py to add new message types or features
+- Modify the output formatting in main.py to customize the presentation of results
 
 ---
 
