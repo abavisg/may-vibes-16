@@ -6,19 +6,17 @@ A lightweight multi-agent system where two AI agents debate a topic from opposin
 
 ## Features
 
-- **User-defined Topics** – Input any topic for the AI agents to debate.
-- **Pro and Con Agents** – Ava (Pro) argues in support of the topic, while Ben (Con) argues against it.
-- **Turn-based Debate** – Arguments are generated sequentially by each agent.
-- **Local LLM Support** – Uses Ollama for local LLM integration, supporting models like TinyLlama and Llama3.
+- **Agent-Based Debate** – A Pro agent argues in support of the topic, while a Con agent argues against it, and a Moderator evaluates both arguments.
+- **Local LLM Support** – Uses Ollama for local LLM integration, supporting llama3 models for private, cost-effective AI.
+- **Sequential Process Flow** – Pro -> Con -> Moderator for a structured debate format.
 
 ---
 
-## Tech stack
+## Tech Stack
 
 - Python
-- [CrewAI](https://docs.crewai.com)
-- [Ollama](https://ollama.ai) for local LLM integration
-- LangChain for LLM interaction
+- [CrewAI](https://docs.crewai.com) for multi-agent orchestration
+- [Ollama](https://ollama.ai) for local LLM integration with llama3
 
 ---
 
@@ -38,48 +36,51 @@ debate_day/
 │   ├── pro_task.py   # Defines the task for the Pro agent
 │   ├── con_task.py   # Defines the task for the Con agent
 │   └── mod_task.py   # Defines the task for the Moderator
-├── main.py             # Orchestrates the debate, handles user input and initiates the crew
-├── requirements.txt    # Lists project dependencies
-└── README.md          # This file
+├── main.py           # Orchestrates the debate
+├── requirements.txt  # Lists project dependencies
+└── README.md         # This file
 ```
 
 ---
 
-## Setup the application
-1. Clone the repository.
-2. Install dependencies: `pip install -r requirements.txt`
-3. Install and start Ollama:
+## Setup
+
+1. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. Install and start Ollama:
    - Visit [Ollama's website](https://ollama.ai) for installation instructions
-   - Start the Ollama server (it should run on http://localhost:11434)
-   - Pull the required model: `ollama pull tinyllama` (or `ollama pull llama3` for better quality)
+   - Start the Ollama server: `ollama serve`
+   - Pull the llama3 model: `ollama pull llama3`
 
 ---
 
-## Run the application
-1. Make sure Ollama is running and the model is downloaded
-2. Execute the main script: `python main.py`
-3. The script will first run a minimal test to verify the setup
-4. You will then be prompted to enter a debate topic
+## Usage
+
+1. Make sure Ollama is running with the llama3 model available
+2. Run the application:
+   ```
+   python main.py
+   ```
+
+3. The system will execute a debate on whether artificial intelligence should be regulated by governments:
+   - The Pro agent (Ava) will argue in favor of regulation
+   - The Con agent (Ben) will present counterarguments
+   - The Moderator (Mia) will evaluate both positions and declare a winner
 
 ---
 
-## Configuration
-The application uses the following default settings (configurable in main.py):
-- Default model: TinyLlama (faster but lower quality)
-- Alternative model: Llama3 (higher quality but slower)
-- Ollama server URL: http://localhost:11434
-- Temperature: 0.7 (controls creativity vs consistency)
+## Customization
 
----
-
-## Troubleshooting
-If you encounter issues:
-1. Ensure Ollama is running (`ollama serve`)
-2. Verify the model is downloaded (`ollama list`)
-3. Check the logs for detailed error messages
-4. Make sure all dependencies are installed correctly
+To modify the debate topic or agent behaviors:
+- Edit the system prompts in the agent files (pro_agent.py, con_agent.py, mod_agent.py)
+- Update the task descriptions in the task files (pro_task.py, con_task.py, mod_task.py)
+- Change the LLM model in main.py (e.g., from llama3 to another Ollama-supported model)
 
 ---
 
 ## License
-MIT
+
+This project is open-source. Feel free to use, modify, and distribute according to the terms of your chosen license.

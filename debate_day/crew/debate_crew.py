@@ -13,11 +13,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def create_debate_crew(topic: str, llm=None):
-    """Creates and configures the debate crew with a dynamic topic.
+def create_debate_crew(llm=None):
+    """Creates and configures the debate crew.
        Agents will use the provided LLM instance."""
 
-    logger.info(f"create_debate_crew called with topic: '{topic}'")
+    logger.info("create_debate_crew called")
     if llm is None:
         logger.warning("No LLM provided to create_debate_crew. Agents may not function properly.")
         
@@ -27,11 +27,6 @@ def create_debate_crew(topic: str, llm=None):
     mia = create_mod_agent(llm=llm)
 
     logger.info("Agents created: Ava, Ben, Mia.")
-
-    # Dynamically update the pro_debate_task's description with the topic
-    pro_debate_task.description = (
-        f"Provide exactly one clear, focused argument supporting the topic: '{topic}'. Be direct and concise."
-    )
     
     # Assign agents to tasks
     pro_debate_task.agent = ava

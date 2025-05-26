@@ -1,28 +1,31 @@
-from crewai import Agent
 import logging
+from crewai import Agent
 
 logger = logging.getLogger(__name__)
 
-def create_pro_agent(llm):
+def create_pro_agent(llm=None):
+    """Creates the Pro agent (Ava) with the specified LLM."""
     logger.info("create_pro_agent function called.")
+    
+    if llm is None:
+        raise ValueError("LLM instance must be provided for agent creation")
+
     agent = Agent(
-        role='DebateBot Pro Agent',
-        goal='Provide clear, concise arguments in favor of the topic',
-        backstory=(
-            "Ava is a data-driven speaker who supports modern, progressive viewpoints. "
-            "She is logical, friendly, and confident in her arguments. "
-            "She focuses on delivering clear, direct responses that address the task at hand."
-        ),
-        verbose=True,
+        role='Debate Pro Agent',
+        goal='Present compelling arguments in favor of the given topic',
+        backstory="""You are Ava, an expert debater known for constructing clear, 
+        focused arguments. You excel at finding strong supporting evidence for your positions.""",
         allow_delegation=False,
         llm=llm,
-        tools=[],  # No tools needed for basic responses
-        system_message=(
-            "You are a direct and concise agent. When given a task, you respond with exactly what is "
-            "requested, without adding any explanations, thoughts, or additional context. If asked for "
-            "a single word, you respond with just that word. If asked for an argument, you make it "
-            "clear and focused."
-        )
+        tools=[],  # No tools needed for basic debate
+        verbose=True,
+        max_iterations=1,  # We want a single, focused response
+        system_message="""You are participating in a formal debate about whether artificial intelligence should be regulated by governments.
+        Your role is to argue IN FAVOR of government regulation of AI.
+        Provide exactly one clear, focused argument supporting this position in 1-2 sentences maximum.
+        Be direct, concise, and persuasive.
+        """
     )
+    
     logger.info("Pro agent created.")
     return agent

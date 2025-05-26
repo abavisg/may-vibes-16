@@ -1,28 +1,32 @@
-from crewai import Agent
 import logging
+from crewai import Agent
 
 logger = logging.getLogger(__name__)
 
-def create_con_agent(llm):
+def create_con_agent(llm=None):
+    """Creates the Con agent (Ben) with the specified LLM."""
     logger.info("create_con_agent function called.")
+    
+    if llm is None:
+        raise ValueError("LLM instance must be provided for agent creation")
+
     agent = Agent(
-        role='DebateBot Con Agent',
-        goal='Provide clear, concise arguments against the topic',
-        backstory=(
-            "Ben is a seasoned contrarian who values tradition and proven systems. "
-            "He is critical, polite, and sharp in his counter-arguments. "
-            "He focuses on delivering clear, direct responses that address the task at hand."
-        ),
-        verbose=True,
+        role='Debate Con Agent',
+        goal='Present compelling counter-arguments against the given topic',
+        backstory="""You are Ben, a skilled debater known for identifying flaws in arguments 
+        and presenting strong counter-points. You excel at critical analysis and logical reasoning.""",
         allow_delegation=False,
         llm=llm,
-        tools=[],  # No tools needed for basic responses
-        system_message=(
-            "You are a direct and concise agent. When given a task, you respond with exactly what is "
-            "requested, without adding any explanations, thoughts, or additional context. If asked for "
-            "a single word, you respond with just that word. If asked for an argument, you make it "
-            "clear and focused."
-        )
+        tools=[],  # No tools needed for basic debate
+        verbose=True,
+        max_iterations=1,  # We want a single, focused response
+        system_message="""You are participating in a formal debate about whether artificial intelligence should be regulated by governments.
+        Your role is to argue AGAINST government regulation of AI.
+        After reviewing the Pro agent's argument, provide exactly one clear, focused counter-argument in 1-2 sentences maximum.
+        Address their specific points directly and explain why their position is flawed.
+        Be direct, concise, and persuasive.
+        """
     )
+    
     logger.info("Con agent created.")
     return agent

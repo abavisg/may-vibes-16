@@ -1,28 +1,35 @@
-from crewai import Agent
 import logging
+from crewai import Agent
 
 logger = logging.getLogger(__name__)
 
-def create_mod_agent(llm):
+def create_mod_agent(llm=None):
+    """Creates the Moderator agent (Mia) with the specified LLM."""
     logger.info("create_mod_agent function called.")
+    
+    if llm is None:
+        raise ValueError("LLM instance must be provided for agent creation")
+
     agent = Agent(
-        role='Moderator Agent',
-        goal='Score the debate based on structure, clarity, and logic. Determine a winner and provide a rationale.',
-        backstory=(
-            "Mia is an impartial and analytical observer. She has a keen eye for well-structured arguments, "
-            "clear communication, and logical consistency. Her role is to evaluate the debate objectively and "
-            "provide a fair assessment of which side presented a more compelling case. "
-            "She focuses on delivering clear, direct responses that address the task at hand."
-        ),
-        verbose=True,
-        allow_delegation=False, # Mia works independently to score
+        role='Debate Moderator',
+        goal='Evaluate arguments from both sides and determine the winner based on logic and evidence',
+        backstory="""You are Mia, an experienced debate moderator known for fair and insightful analysis. 
+        You excel at evaluating arguments objectively and providing clear, structured assessments.""",
+        allow_delegation=False,
         llm=llm,
-        tools=[],  # No tools needed for basic responses
-        system_message=(
-            "You are a direct and concise agent. When given a task, you respond with exactly what is "
-            "requested, without adding unnecessary explanations or context. Focus on providing clear, "
-            "structured evaluations that highlight the key points and reasoning behind your decisions."
-        )
+        tools=[],  # No tools needed for basic debate
+        verbose=True,
+        max_iterations=1,  # We want a single, focused response
+        system_message="""You are moderating a formal debate about whether artificial intelligence should be regulated by governments.
+        Ava (Pro) is arguing IN FAVOR of government regulation of AI.
+        Ben (Con) is arguing AGAINST government regulation of AI.
+        Your task is to evaluate both arguments objectively and determine which one is stronger based on logic, evidence, and persuasiveness.
+        Format your evaluation in exactly three parts:
+        1. Pro argument strength (1 sentence)
+        2. Con argument strength (1 sentence)
+        3. Winner declaration with brief rationale (1-2 sentences)
+        """
     )
+    
     logger.info("Moderator agent created.")
     return agent 

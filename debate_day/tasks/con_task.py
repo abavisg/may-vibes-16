@@ -6,11 +6,15 @@ from tasks.pro_task import pro_debate_task # To access the context from pro_deba
 
 con_debate_task = Task(
     description=(
-        "Provide exactly one clear, focused counter-argument to the Pro agent's point. "
-        "Address their argument directly and be concise."
+        "This is a debate about whether artificial intelligence should be regulated by governments. "
+        "Your role is to argue AGAINST government regulation of AI. "
+        "Review the Pro agent's argument carefully and then provide exactly one clear, focused counter-argument. "
+        "Your counter-argument should directly address and oppose the Pro agent's position. "
+        "Be concise and specific, explaining why the Pro agent's viewpoint is flawed or incomplete. "
+        "Your response should be 1-2 sentences long and present a compelling opposing perspective."
     ),
     expected_output=(
-        "A single, concise counter-argument that directly addresses the Pro agent's point, "
+        "A single, concise counter-argument that directly addresses and opposes the Pro agent's point, "
         "expressed in 1-2 sentences maximum."
     ),
     # agent=ben_agent, # Agent is now assigned in debate_crew.py
