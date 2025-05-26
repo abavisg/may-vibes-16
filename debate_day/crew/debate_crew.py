@@ -26,6 +26,6 @@ def create_debate_crew(topic: str):
         agents=[ava_agent, ben_agent, mia_agent],
         tasks=[pro_debate_task, con_debate_task, moderator_task],
         process=Process.sequential,  # Tasks will run in the order provided
-        verbose=2  # For detailed output of the crew's execution
+        verbose=True  # Changed from 2 to True to resolve Pydantic validation error
     )
     return debate_crew
