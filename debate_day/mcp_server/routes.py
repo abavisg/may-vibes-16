@@ -225,7 +225,7 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
         debate = DebateSession(
             debate_id=debate_id,
             topic=request.topic,
-            num_rounds=request.num_rounds,
+            num_rounds=max(0, request.num_rounds - 1),
             pro_agent_name=request.pro_agent_name if request.pro_agent_name else "ProAgentAlpha",
             con_agent_name=request.con_agent_name if request.con_agent_name else "ConAgentBeta",
             moderator_agent_name=request.moderator_agent_name if request.moderator_agent_name else "ModeratorZeta",
@@ -295,7 +295,7 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
             debate_id=debate_id,
             topic=request.topic,
             num_rounds=request.num_rounds,
-            status=SessionStatus.PENDING, # Status will be updated to ACTIVE by agents' first messages
+            status=SessionStatus.PENDING,
             created_at=debate.created_at,
             pro_agent_name=debate.pro_agent_name,
             con_agent_name=debate.con_agent_name,
