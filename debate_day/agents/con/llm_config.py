@@ -12,6 +12,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 from loguru import logger
+import traceback
 
 # Load environment variables
 env_path = Path(__file__).parent / ".env"
@@ -66,15 +67,31 @@ def generate_response(prompt: str, params: Optional[Dict[str, Any]] = None) -> s
         )
         response.raise_for_status()
         
-        # Parse and return the response
-        response_data = response.json()
-        generated_text = response_data.get("response", "")
+        # Process the streaming response
+        generated_text = ""
+        final_response_data = {}
+        for line in response.iter_lines():
+            if line:
+                try:
+                    chunk = json.loads(line)
+                    generated_text += chunk.get("response", "")
+                    # The last chunk usually contains the full context and stats
+                    if chunk.get("done", False):
+                        final_response_data = chunk
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to decode JSON line: {line}")
         
-        # Log generation stats if available
-        if "eval_count" in response_data:
-            logger.debug(f"Generated {response_data.get('eval_count')} tokens in {response_data.get('eval_duration', 0) / 1e9:.2f}s")
-        
-        return generated_text
+        # Log generation stats if available from the final chunk
+        if "eval_count" in final_response_data:
+            logger.debug(f"Generated {final_response_data.get('eval_count')} tokens in {final_response_data.get('eval_duration', 0) / 1e9:.2f}s (Total)")
+        elif not generated_text:
+             logger.warning("Ollama response was empty or not in expected format.")
+             return "Error: Received an empty or invalid response from Ollama."
+
+        if not generated_text.strip() and not final_response_data:
+            logger.warning("Ollama produced an empty response string.")
+
+        return generated_text.strip()
     
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error from Ollama: {e.response.status_code} - {e.response.text}")
@@ -85,7 +102,7 @@ def generate_response(prompt: str, params: Optional[Dict[str, Any]] = None) -> s
         return "Error: Unable to connect to Ollama. Please ensure the service is running."
     
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error(f"Unexpected error: {e}\\n{traceback.format_exc()}")
         return "Error: An unexpected error occurred while generating a response."
 
 
