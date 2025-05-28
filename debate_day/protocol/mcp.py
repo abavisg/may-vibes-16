@@ -1,234 +1,232 @@
 """
-Model Context Protocol (MCP) implementation for debate agents.
+Model Context Protocol (MCP) for Debate Day 2.0
 
-This module defines a standardized protocol for debate agents to communicate,
-ensuring consistent message formats and structured data exchange.
+This module defines the message protocol that serves as the shared contract
+between all components of the Debate Day system.
 """
 
-import json
 from enum import Enum
-from typing import Dict, List, Optional, Any, Union
+from typing import Optional, Dict, Any, List
+from pydantic import BaseModel, Field
+from datetime import datetime
 
-class MessageType(Enum):
-    """Defines the types of messages that can be exchanged between debate agents."""
-    ARGUMENT = "argument"
-    COUNTER_ARGUMENT = "counter_argument"
-    REBUTTAL = "rebuttal"
-    EVALUATION = "evaluation"
-    TOPIC = "topic"
-    RESULT = "result"
-    ERROR = "error"
 
-class DebateProtocol:
-    """Implements the Model Context Protocol for debate agents."""
+class Role(str, Enum):
+    """Agent roles in the debate system."""
+    PRO = "pro"
+    CON = "con"
+    MOD = "mod"
+
+
+class MessageType(str, Enum):
+    """Types of messages that can be exchanged in a debate."""
+    ARGUMENT = "argument"       # Initial position statement
+    REBUTTAL = "rebuttal"       # Response to previous arguments
+    COUNTER = "counter"         # Direct challenge to opponent's point
+    VERDICT = "verdict"         # Final judgment from moderator
+    SYSTEM = "system"           # System messages (debate start/end)
+    ERROR = "error"             # Error messages
+    
+    
+class DebateStatus(str, Enum):
+    """Possible states of a debate session."""
+    INITIALIZED = "initialized"  # Debate created but not started
+    IN_PROGRESS = "in_progress"  # Debate is ongoing
+    COMPLETED = "completed"      # Debate has concluded
+    ERROR = "error"              # Debate encountered an error
+
+
+class MCPMessage(BaseModel):
+    """
+    Standard message format for all communication in the Debate Day system.
+    
+    This model defines the structure that all messages must follow, whether
+    they are sent by agents, the MCP server, or CLI tools.
+    """
+    # Required fields
+    debate_id: str = Field(..., description="Unique identifier for the debate")
+    sender: str = Field(..., description="Identifier of the sender (e.g., 'pro', 'con', 'mod', 'system')")
+    role: Role = Field(..., description="Role of the sender in the debate")
+    round: int = Field(..., description="Round number in the debate (0 = initial arguments)")
+    content: str = Field(..., description="Actual message content")
+    
+    # Optional fields
+    message_id: Optional[str] = Field(None, description="Unique identifier for this message")
+    message_type: Optional[MessageType] = Field(None, description="Type of message being sent")
+    timestamp: Optional[str] = Field(
+        default_factory=lambda: datetime.now().isoformat(),
+        description="When the message was created"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Additional data about the message (e.g., model, tokens)"
+    )
+    
+    class Config:
+        """Pydantic model configuration."""
+        use_enum_values = True  # Use enum values instead of enum objects
+        
+
+class PromptFormatter:
+    """
+    Utilities for formatting debate history into LLM prompts.
+    
+    This class provides methods to convert MCP messages into formatted
+    text suitable for prompting language models.
+    """
     
     @staticmethod
-    def format_message(
-        message_type: MessageType,
-        content: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        round_number: Optional[int] = None,
-        agent_id: Optional[str] = None,
-        side: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def format_debate_history(messages: List[MCPMessage], include_rounds: bool = True) -> str:
         """
-        Format a message according to the protocol.
+        Format a list of MCP messages into a readable debate history.
         
         Args:
-            message_type: The type of message being sent
-            content: The actual content of the message
-            metadata: Additional information about the message
-            round_number: Which debate round this message belongs to
-            agent_id: Identifier for the agent sending the message
-            side: Which side (pro/con) the agent represents
+            messages: List of MCPMessage objects
+            include_rounds: Whether to include round numbers
             
         Returns:
-            A formatted message dictionary
+            Formatted debate history as a string
         """
-        message = {
-            "type": message_type.value,
-            "content": content,
-            "metadata": metadata or {},
-        }
+        if not messages:
+            return ""
         
-        if round_number is not None:
-            message["round"] = round_number
+        formatted_messages = []
+        
+        # Group messages by round for better readability
+        messages_by_round = {}
+        for msg in messages:
+            if msg.round not in messages_by_round:
+                messages_by_round[msg.round] = []
+            messages_by_round[msg.round].append(msg)
+        
+        # Format each round
+        for round_num in sorted(messages_by_round.keys()):
+            if include_rounds and round_num > 0:
+                formatted_messages.append(f"\n--- Round {round_num} ---\n")
             
-        if agent_id is not None:
-            message["agent_id"] = agent_id
-            
-        if side is not None:
-            message["side"] = side
-            
-        return message
+            # Format messages in this round
+            for msg in messages_by_round[round_num]:
+                role_display = "Pro" if msg.role == Role.PRO else "Con" if msg.role == Role.CON else "Moderator"
+                formatted_messages.append(f"{role_display}: {msg.content}")
+        
+        return "\n\n".join(formatted_messages)
     
     @staticmethod
-    def parse_message(message: Dict[str, Any]) -> Dict[str, Any]:
+    def format_for_agent(
+        role: Role, 
+        messages: List[MCPMessage],
+        current_round: int
+    ) -> str:
         """
-        Parse a message received through the protocol.
+        Format debate history specifically for an agent's prompt.
         
         Args:
-            message: The received message dictionary
+            role: Which role this prompt is for
+            messages: List of debate messages
+            current_round: The current round number
             
         Returns:
-            A parsed message with validated structure
-            
-        Raises:
-            ValueError: If the message doesn't follow the protocol
+            Formatted prompt text
         """
-        if not isinstance(message, dict):
-            raise ValueError("Message must be a dictionary")
-            
-        if "type" not in message:
-            raise ValueError("Message must contain a 'type' field")
-            
-        if "content" not in message:
-            raise ValueError("Message must contain a 'content' field")
-            
-        try:
-            # Validate message type
-            message_type = MessageType(message["type"])
-        except ValueError:
-            valid_types = [t.value for t in MessageType]
-            raise ValueError(f"Invalid message type. Must be one of: {valid_types}")
-            
-        # Create a validated copy of the message
-        validated = {
-            "type": message_type.value,
-            "content": message["content"],
-            "metadata": message.get("metadata", {}),
-        }
+        # Get the debate topic (assuming it's in the first system message)
+        topic = "Unknown Topic"
+        for msg in messages:
+            if msg.sender == "system" and msg.round == 0:
+                topic = msg.content
+                break
         
-        # Copy optional fields if present
-        for field in ["round", "agent_id", "side"]:
-            if field in message:
-                validated[field] = message[field]
-                
-        return validated
+        # Format the debate history
+        history = PromptFormatter.format_debate_history(messages)
+        
+        # Create a role-specific prompt
+        if role == Role.PRO:
+            if current_round == 0:
+                instruction = (
+                    f"You are arguing IN FAVOR of the topic. "
+                    f"Provide your initial argument in 1-2 sentences."
+                )
+            else:
+                instruction = (
+                    f"You are arguing IN FAVOR of the topic. "
+                    f"This is round {current_round}. "
+                    f"Respond to the Con's most recent point with a focused rebuttal."
+                )
+        elif role == Role.CON:
+            if current_round == 0:
+                instruction = (
+                    f"You are arguing AGAINST the topic. "
+                    f"Provide your initial counter-argument in 1-2 sentences."
+                )
+            else:
+                instruction = (
+                    f"You are arguing AGAINST the topic. "
+                    f"This is round {current_round}. "
+                    f"Respond to the Pro's most recent point with a focused rebuttal."
+                )
+        elif role == Role.MOD:
+            instruction = (
+                f"You are the MODERATOR of this debate. "
+                f"Review the arguments from both sides and declare a winner "
+                f"based on the strength of their reasoning and evidence."
+            )
+        else:
+            instruction = "Review the debate history and respond appropriately."
+        
+        # Assemble the final prompt
+        prompt = f"""
+Topic: {topic}
 
-    @staticmethod
-    def topic_message(topic: str) -> Dict[str, Any]:
-        """Create a formatted topic message."""
-        return DebateProtocol.format_message(
-            MessageType.TOPIC,
-            topic,
-            metadata={"description": "Debate topic"}
-        )
-    
-    @staticmethod
-    def argument_message(content: str, side: str, agent_id: str, round_number: int = 0) -> Dict[str, Any]:
-        """Create a formatted argument message."""
-        return DebateProtocol.format_message(
-            MessageType.ARGUMENT if round_number == 0 else MessageType.REBUTTAL,
-            content,
-            metadata={"type": "initial" if round_number == 0 else f"rebuttal_{round_number}"},
-            round_number=round_number,
-            agent_id=agent_id,
-            side=side
-        )
-    
-    @staticmethod
-    def evaluation_message(content: str, winner: str, agent_id: str) -> Dict[str, Any]:
-        """Create a formatted evaluation message."""
-        return DebateProtocol.format_message(
-            MessageType.EVALUATION,
-            content,
-            metadata={"winner": winner},
-            agent_id=agent_id
-        )
-    
-    @staticmethod
-    def result_message(result: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a formatted result message."""
-        # Create a JSON-safe copy of the result dictionary
-        json_safe_result = {}
-        
-        for key, value in result.items():
-            try:
-                # Test if the value is JSON serializable
-                json.dumps(value)
-                json_safe_result[key] = value
-            except (TypeError, OverflowError):
-                # If not serializable, convert to string
-                json_safe_result[key] = str(value)
-        
-        return DebateProtocol.format_message(
-            MessageType.RESULT,
-            json.dumps(json_safe_result),
-            metadata={"format": "json"}
-        )
-    
-    @staticmethod
-    def error_message(error_message: str, error_code: Optional[str] = None) -> Dict[str, Any]:
-        """Create a formatted error message."""
-        return DebateProtocol.format_message(
-            MessageType.ERROR,
-            error_message,
-            metadata={"error_code": error_code or "UNKNOWN_ERROR"}
-        )
+Debate History:
+{history}
 
-class DebateContext:
-    """Manages the context for a debate session."""
+{instruction}
+"""
+        return prompt.strip()
+
+
+def validate_message(message: Dict[str, Any]) -> MCPMessage:
+    """
+    Validate a message dictionary against the MCP protocol.
     
-    def __init__(self, topic: str):
-        self.topic = topic
-        self.messages: List[Dict[str, Any]] = []
-        self.current_round = 0
-        self.max_rounds = 0
+    Args:
+        message: Dictionary representation of a message
         
-    def add_message(self, message: Dict[str, Any]) -> None:
-        """Add a message to the debate context."""
-        validated = DebateProtocol.parse_message(message)
-        self.messages.append(validated)
+    Returns:
+        Validated MCPMessage object
         
-        # Update current round if needed
-        if "round" in validated and validated["round"] > self.current_round:
-            self.current_round = validated["round"]
+    Raises:
+        ValueError: If the message is invalid
+    """
+    try:
+        return MCPMessage(**message)
+    except Exception as e:
+        raise ValueError(f"Invalid MCP message format: {e}")
     
-    def get_messages_for_round(self, round_number: int) -> List[Dict[str, Any]]:
-        """Get all messages for a specific round."""
-        return [msg for msg in self.messages if msg.get("round") == round_number]
+
+def create_system_message(
+    debate_id: str,
+    content: str,
+    round: int = 0,
+    message_type: MessageType = MessageType.SYSTEM
+) -> MCPMessage:
+    """
+    Create a system message.
     
-    def get_messages_by_type(self, message_type: MessageType) -> List[Dict[str, Any]]:
-        """Get all messages of a specific type."""
-        return [msg for msg in self.messages if msg["type"] == message_type.value]
-    
-    def get_messages_for_agent(self, agent_id: str) -> List[Dict[str, Any]]:
-        """Get all messages from a specific agent."""
-        return [msg for msg in self.messages if msg.get("agent_id") == agent_id]
-    
-    def get_messages_for_side(self, side: str) -> List[Dict[str, Any]]:
-        """Get all messages from a specific side (pro/con)."""
-        return [msg for msg in self.messages if msg.get("side") == side]
-    
-    def get_latest_message(self, message_type: Optional[MessageType] = None) -> Optional[Dict[str, Any]]:
-        """Get the most recent message, optionally filtered by type."""
-        if not self.messages:
-            return None
-            
-        if message_type is None:
-            return self.messages[-1]
-            
-        for msg in reversed(self.messages):
-            if msg["type"] == message_type.value:
-                return msg
-                
-        return None
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the debate context to a dictionary."""
-        return {
-            "topic": self.topic,
-            "messages": self.messages,
-            "current_round": self.current_round,
-            "max_rounds": self.max_rounds
-        }
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'DebateContext':
-        """Create a debate context from a dictionary."""
-        context = cls(data["topic"])
-        context.messages = data["messages"]
-        context.current_round = data["current_round"]
-        context.max_rounds = data["max_rounds"]
-        return context 
+    Args:
+        debate_id: ID of the debate
+        content: Message content
+        round: Debate round
+        message_type: Type of message
+        
+    Returns:
+        MCPMessage object
+    """
+    return MCPMessage(
+        debate_id=debate_id,
+        sender="system",
+        role="system",  # Using string instead of enum since "system" isn't in Role
+        round=round,
+        content=content,
+        message_type=message_type,
+        metadata={"system": True}
+    ) 
