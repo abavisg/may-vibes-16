@@ -6,13 +6,14 @@ data structures used by the MCP server.
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List, Literal
-from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any, List
+from enum import Enum
+from pydantic import BaseModel, Field, ConfigDict
 
 from debate_day.protocol import Role, MessageType
 
 
-class SessionStatus(str, Literal["pending", "active", "finished", "error"]):
+class SessionStatus(str, Enum):
     """Status of a debate session."""
     PENDING = "pending"
     ACTIVE = "active" 
@@ -53,9 +54,7 @@ class DebateSession(BaseModel):
         description="The declared winner of the debate (if finished)"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        orm_mode = True  # For future ORM compatibility
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AgentTurn(BaseModel):
@@ -79,9 +78,7 @@ class AgentTurn(BaseModel):
         description="Whether this is the final turn (moderator verdict)"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        orm_mode = True  # For future ORM compatibility
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MCPMessageRecord(BaseModel):
@@ -116,9 +113,7 @@ class MCPMessageRecord(BaseModel):
         description="Database ID (for future persistence)"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        orm_mode = True  # For future ORM compatibility
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DebateSessionWithMessages(DebateSession):
@@ -136,14 +131,14 @@ class CreateDebateRequest(BaseModel):
     topic: str = Field(..., description="The topic to debate")
     num_rounds: int = Field(1, description="Number of rounds (default: 1)")
     
-    class Config:
-        """Schema configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "topic": "Artificial intelligence will benefit humanity more than it will harm it.",
                 "num_rounds": 2
             }
         }
+    )
 
 
 class CreateDebateResponse(BaseModel):
@@ -165,9 +160,8 @@ class AddMessageRequest(BaseModel):
         description="Additional message metadata"
     )
     
-    class Config:
-        """Schema configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sender": "ava",
                 "role": "pro",
@@ -175,6 +169,7 @@ class AddMessageRequest(BaseModel):
                 "metadata": {"confidence": 0.95}
             }
         }
+    )
 
 
 class DebateStatusResponse(BaseModel):

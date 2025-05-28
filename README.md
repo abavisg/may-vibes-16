@@ -10,6 +10,7 @@ A command-line application that simulates a debate between AI agents using the C
 - Uses local Ollama models for generating dynamic AI-driven content
 - Fallback to hardcoded responses if LLM is unavailable
 - Saves debate history to outputs directory
+- MCP server for centralized debate management
 
 ## Architecture
 
@@ -19,19 +20,21 @@ The system uses a controller-driven architecture with clear separation of concer
 - **Protocol**: Defines message formats and standardizes communication
 - **Tasks**: Generate content for each agent (Pro, Con, Moderator)
 - **LLM Integration**: Uses CrewAI's LLM class to connect with local Ollama models
+- **MCP Server**: FastAPI-based central server for debate management
 
 ## Requirements
 
 - Python 3.9+
 - CrewAI library
 - Ollama (running locally with llama3 model)
+- FastAPI and uvicorn (for MCP server)
 
 ## Installation
 
 1. Clone the repository
-2. Install dependencies:
+2. Install the package in development mode:
    ```
-   pip install -r requirements.txt
+   pip install -e .
    ```
 3. Make sure Ollama is running locally with the llama3 model:
    ```
@@ -40,7 +43,9 @@ The system uses a controller-driven architecture with clear separation of concer
 
 ## Usage
 
-Run the application:
+### Run the CLI Application
+
+Run the command-line application:
 
 ```
 python debate_day/main.py
@@ -51,6 +56,29 @@ Follow the prompts to:
 2. Select the number of rebuttals (0-3)
 
 The debate will run automatically, and the results will be saved to the `outputs` directory.
+
+### Run the MCP Server
+
+The MCP (Model Context Protocol) server provides a central communication hub for the debate system:
+
+```
+cd debate_day
+python run_mcp_server.py
+```
+
+This will start the server on http://localhost:8000. You can access the API documentation at http://localhost:8000/docs.
+
+## API Endpoints
+
+The MCP server provides the following endpoints:
+
+- `POST /api/start` - Start a new debate
+- `POST /api/message/{debate_id}` - Add a message to a debate
+- `GET /api/context/{debate_id}` - Get message history
+- `GET /api/turn/{debate_id}` - Get turn information
+- `GET /api/status/{debate_id}` - Get debate status
+- `GET /api/debates` - List all debates
+- `GET /api/debate/{debate_id}` - Get detailed debate information
 
 ## Sample Topics
 

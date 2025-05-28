@@ -7,7 +7,7 @@ between all components of the Debate Day system.
 
 from enum import Enum
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 
@@ -62,10 +62,8 @@ class MCPMessage(BaseModel):
         description="Additional data about the message (e.g., model, tokens)"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        use_enum_values = True  # Use enum values instead of enum objects
-        
+    model_config = ConfigDict(use_enum_values=True)
+
 
 class PromptFormatter:
     """

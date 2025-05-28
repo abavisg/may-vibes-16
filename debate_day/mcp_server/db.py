@@ -208,11 +208,11 @@ def count_messages(debate_id: str) -> int:
     """
     return len(debate_messages.get(debate_id, []))
 
-# --- Agent Turn Tracking ---
+# --- Turn Management ---
 
 def set_agent_turn(turn: AgentTurn) -> None:
     """
-    Set whose turn it is for a debate.
+    Set the current turn for a debate.
     
     Args:
         turn: The turn information to store
@@ -221,13 +221,13 @@ def set_agent_turn(turn: AgentTurn) -> None:
 
 def get_agent_turn(debate_id: str) -> Optional[AgentTurn]:
     """
-    Get the current agent turn for a debate.
+    Get the current turn for a debate.
     
     Args:
         debate_id: ID of the debate
         
     Returns:
-        Current turn information or None if not found
+        AgentTurn if found, None otherwise
     """
     return agent_turns.get(debate_id)
 
@@ -255,13 +255,13 @@ def update_agent_turn(debate_id: str, **kwargs: Any) -> bool:
 
 def get_debate_with_messages(debate_id: str) -> Optional[Dict[str, Any]]:
     """
-    Get a debate session with all its messages.
+    Get a debate with all its messages and current turn.
     
     Args:
         debate_id: ID of the debate
         
     Returns:
-        Dictionary with debate and messages, or None if not found
+        Dictionary with debate, messages, and current turn
     """
     debate = get_debate(debate_id)
     if not debate:
