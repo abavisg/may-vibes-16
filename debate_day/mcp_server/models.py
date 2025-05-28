@@ -53,6 +53,8 @@ class DebateSession(BaseModel):
         default=None,
         description="The declared winner of the debate (if finished)"
     )
+    pro_agent_name: Optional[str] = Field(None, description="Name of the Pro agent")
+    con_agent_name: Optional[str] = Field(None, description="Name of the Con agent")
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -131,13 +133,17 @@ class CreateDebateRequest(BaseModel):
     topic: str = Field(..., description="The topic to debate")
     num_rounds: int = Field(1, description="Number of rounds (default: 1)")
     debate_id: Optional[str] = Field(None, description="Custom debate ID (auto-generated if not provided)")
+    pro_agent_name: Optional[str] = Field(None, description="Custom name for the Pro agent")
+    con_agent_name: Optional[str] = Field(None, description="Custom name for the Con agent")
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "topic": "Artificial intelligence will benefit humanity more than it will harm it.",
                 "num_rounds": 2,
-                "debate_id": "custom-debate-123"
+                "debate_id": "custom-debate-123",
+                "pro_agent_name": "Pro Agent",
+                "con_agent_name": "Con Agent"
             }
         }
     )
@@ -150,6 +156,8 @@ class CreateDebateResponse(BaseModel):
     num_rounds: int
     status: SessionStatus
     created_at: datetime
+    pro_agent_name: Optional[str] = None
+    con_agent_name: Optional[str] = None
 
 
 class AddMessageRequest(BaseModel):

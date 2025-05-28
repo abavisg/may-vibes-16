@@ -7,6 +7,10 @@ message handling, and turn tracking.
 
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Path
+import os
+import sys
+import subprocess
+from pathlib import Path
 
 from debate_day.mcp_server.models import (
     CreateDebateRequest,
@@ -136,6 +140,66 @@ def _update_debate_status_after_message(debate_id: str, message: MCPMessageRecor
         db.update_debate_status(debate_id, SessionStatus.ACTIVE)
 
 
+# New helper function to create .env file for an agent
+def _create_agent_env_file(
+    project_root: Path,
+    role: str,
+    debate_id: str,
+    agent_name: str,
+    model: str,
+    mcp_url: str,
+) -> None:
+    env_content = f"""# {role.upper()} Agent Configuration
+ROLE={role}
+MODEL={model}
+MCP_SERVER_URL={mcp_url}
+AGENT_NAME={agent_name}
+DEBATE_ID={debate_id}
+"""
+    agent_dir = project_root / "debate_day" / "agents" / role
+    env_path = agent_dir / ".env"
+    agent_dir.mkdir(parents=True, exist_ok=True)
+    with open(env_path, "w") as f:
+        f.write(env_content)
+    # Consider logging this action
+    print(f"Created .env file for {role} agent at {env_path}")
+
+
+# New helper function to launch an agent
+def _launch_agent_process(
+    project_root: Path,
+    role: str,
+    debug: bool = False # Add debug if needed later
+) -> Optional[subprocess.Popen]:
+    agent_dir = project_root / "debate_day" / "agents" / role
+    agent_main_py = agent_dir / "main.py"
+
+    if not agent_main_py.exists():
+        print(f"Error: Agent main.py not found: {agent_main_py}") # Log this
+        return None
+
+    cmd = [sys.executable, str(agent_main_py)]
+    
+    try:
+        print(f"Launching {role} agent from {agent_dir}...") # Log this
+        process = subprocess.Popen(
+            cmd,
+            cwd=str(agent_dir), # Set CWD to the agent's directory
+            env=os.environ.copy(),
+            stdout=subprocess.PIPE, # Capture stdout
+            stderr=subprocess.PIPE, # Capture stderr
+            text=True,
+            bufsize=1 
+        )
+        print(f"{role.upper()} agent started with PID {process.pid}") # Log this
+        # We might want to start threads to monitor stdout/stderr of these processes
+        # For now, we'll just launch and forget for simplicity of the API request handling
+        return process
+    except Exception as e:
+        print(f"Error launching {role} agent: {e}") # Log this
+        return None
+
+
 # --- API Endpoints ---
 
 @router.post("/start", response_model=CreateDebateResponse, status_code=status.HTTP_201_CREATED)
@@ -150,6 +214,10 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
         New debate session information
     """
     try:
+        # Determine project root from the current file's location
+        # Assumes routes.py is in debate_day/mcp_server/
+        project_root = Path(__file__).resolve().parent.parent.parent
+
         # Use provided debate_id or generate a new one
         debate_id = request.debate_id if request.debate_id else generate_debate_id()
         
@@ -158,6 +226,8 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
             debate_id=debate_id,
             topic=request.topic,
             num_rounds=request.num_rounds,
+            pro_agent_name=request.pro_agent_name if request.pro_agent_name else "ProAgentAlpha",
+            con_agent_name=request.con_agent_name if request.con_agent_name else "ConAgentBeta",
             status=SessionStatus.PENDING
         )
         
@@ -186,14 +256,41 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
             last_message_id=message_id
         )
         db.set_agent_turn(initial_turn)
-        
+
+        # Launch agents
+        # Default values - these could come from request or config later
+        default_model = "llama3"
+        default_mcp_url = "http://localhost:8000" # This should ideally be dynamically determined or configured
+
+        # Create .env and launch Pro Agent
+        _create_agent_env_file(
+            project_root, "pro", debate_id, debate.pro_agent_name, default_model, default_mcp_url
+        )
+        pro_process = _launch_agent_process(project_root, "pro")
+        if not pro_process:
+            # Handle error - maybe log and continue, or raise exception
+            print(f"Warning: Failed to launch Pro agent for debate {debate_id}")
+
+        # Create .env and launch Con Agent
+        _create_agent_env_file(
+            project_root, "con", debate_id, debate.con_agent_name, default_model, default_mcp_url
+        )
+        con_process = _launch_agent_process(project_root, "con")
+        if not con_process:
+            # Handle error
+            print(f"Warning: Failed to launch Con agent for debate {debate_id}")
+
+        # (Moderator agent launch can be added here later)
+
         # Return the debate information
         return CreateDebateResponse(
             debate_id=debate_id,
             topic=request.topic,
             num_rounds=request.num_rounds,
-            status=SessionStatus.PENDING,
-            created_at=debate.created_at
+            status=SessionStatus.PENDING, # Status will be updated to ACTIVE by agents' first messages
+            created_at=debate.created_at,
+            pro_agent_name=debate.pro_agent_name,
+            con_agent_name=debate.con_agent_name,
         )
     except Exception as e:
         # Log the error for debugging

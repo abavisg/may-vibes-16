@@ -70,7 +70,7 @@ def parse_arguments():
         type=str, 
         default="Alex",
         dest="pro_name",
-        help="Name for the Pro agent (default: Alex)"
+        help="Name for the Pro agent (default: Ava)"
     )
     
     parser.add_argument(
