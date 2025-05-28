@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query, Path
 import os
 import sys
 import subprocess
-from pathlib import Path
+from pathlib import Path as PathLib
 
 from debate_day.mcp_server.models import (
     CreateDebateRequest,
@@ -142,7 +142,7 @@ def _update_debate_status_after_message(debate_id: str, message: MCPMessageRecor
 
 # New helper function to create .env file for an agent
 def _create_agent_env_file(
-    project_root: Path,
+    project_root: PathLib,
     role: str,
     debate_id: str,
     agent_name: str,
@@ -167,7 +167,7 @@ DEBATE_ID={debate_id}
 
 # New helper function to launch an agent
 def _launch_agent_process(
-    project_root: Path,
+    project_root: PathLib,
     role: str,
     debug: bool = False # Add debug if needed later
 ) -> Optional[subprocess.Popen]:
@@ -216,7 +216,7 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
     try:
         # Determine project root from the current file's location
         # Assumes routes.py is in debate_day/mcp_server/
-        project_root = Path(__file__).resolve().parent.parent.parent
+        project_root = PathLib(__file__).resolve().parent.parent.parent
 
         # Use provided debate_id or generate a new one
         debate_id = request.debate_id if request.debate_id else generate_debate_id()
