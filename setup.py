@@ -11,6 +11,8 @@ setup(
         "pydantic>=2.0.0",
         "uvicorn>=0.23.2",
         "python-dotenv>=1.0.0",
+        "httpx>=0.25.0",
+        "loguru>=0.7.0",
     ],
     python_requires=">=3.9",
 ) 

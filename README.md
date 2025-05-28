@@ -1,6 +1,6 @@
 # Debate Day
 
-A command-line application that simulates a debate between AI agents using the CrewAI framework and local LLM models.
+A command-line application that simulates a debate between AI agents using local LLM models, with two distinct architecture options.
 
 ## Features
 
@@ -11,23 +11,47 @@ A command-line application that simulates a debate between AI agents using the C
 - Fallback to hardcoded responses if LLM is unavailable
 - Saves debate history to outputs directory
 - MCP server for centralized debate management
+- Autonomous agent architecture with modular design
+- CLI tools for orchestrating debates
 
-## Architecture
+## Architectures
 
-The system uses a controller-driven architecture with clear separation of concerns:
+The system offers two different architectures:
+
+### 1. CrewAI-Based Architecture (Legacy)
+
+The original implementation uses the CrewAI framework:
 
 - **Controller**: Manages debate flow, turns, rounds, and context
-- **Protocol**: Defines message formats and standardizes communication
 - **Tasks**: Generate content for each agent (Pro, Con, Moderator)
+- **Crew**: Coordinates agents using the CrewAI framework
 - **LLM Integration**: Uses CrewAI's LLM class to connect with local Ollama models
+
+To use this version, run:
+```
+python debate_day/main.py
+```
+
+### 2. Autonomous Agent Architecture (Current)
+
+The newer implementation uses standalone agents that communicate via the MCP server:
+
 - **MCP Server**: FastAPI-based central server for debate management
+- **Protocol**: Defines message formats and standardizes communication
+- **Agent Modules**: Self-contained agent implementations in dedicated directories
+- **CLI Tools**: Utilities for starting debates and managing agents
+
+To use this version, run:
+```
+python cli_tools/start_debate.py --topic "Your topic here" --launch-agents
+```
 
 ## Requirements
 
 - Python 3.9+
-- CrewAI library
 - Ollama (running locally with llama3 model)
 - FastAPI and uvicorn (for MCP server)
+- httpx for HTTP requests
 
 ## Installation
 
@@ -43,9 +67,9 @@ The system uses a controller-driven architecture with clear separation of concer
 
 ## Usage
 
-### Run the CLI Application
+### Run the Legacy CLI Application
 
-Run the command-line application:
+Run the original command-line application:
 
 ```
 python debate_day/main.py
@@ -68,6 +92,16 @@ python run_mcp_server.py
 
 This will start the server on http://localhost:8000. You can access the API documentation at http://localhost:8000/docs.
 
+### Start a Debate with CLI Tools
+
+Use the debate bootstrapper to start a new debate and optionally launch all agents:
+
+```
+python cli_tools/start_debate.py --topic "Artificial intelligence will ultimately benefit humanity" --rounds 2 --launch-agents
+```
+
+For more options and examples, see the [CLI Tools documentation](cli_tools/README.md).
+
 ## API Endpoints
 
 The MCP server provides the following endpoints:
@@ -79,6 +113,16 @@ The MCP server provides the following endpoints:
 - `GET /api/status/{debate_id}` - Get debate status
 - `GET /api/debates` - List all debates
 - `GET /api/debate/{debate_id}` - Get detailed debate information
+
+## Agent Modules
+
+The system includes three specialized agent modules:
+
+- **Pro Agent**: Argues in favor of the debate topic
+- **Con Agent**: Argues against the debate topic
+- **Moderator Agent**: Evaluates arguments and declares a winner
+
+Each agent is implemented as a standalone module in the `debate_day/agents` directory with its own configuration and strategy.
 
 ## Sample Topics
 
@@ -95,7 +139,7 @@ The debate output follows a structured format:
 
 ## LLM Integration
 
-The system now uses CrewAI's LLM class to connect with local Ollama models for generating dynamic, contextual responses. Each task (pro_task, con_task, mod_task) uses the LLM to generate content based on the debate context and provides fallback responses if the LLM is unavailable.
+The system uses Ollama for generating dynamic, contextual responses. Each agent connects to Ollama independently and provides fallback responses if the LLM is unavailable.
 
 Key features of the LLM integration:
 - Context-aware prompts that include debate history
