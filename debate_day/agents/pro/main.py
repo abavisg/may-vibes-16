@@ -49,32 +49,33 @@ DEBATE_ID = os.getenv("DEBATE_ID", "test-debate-id-001")
 POLL_INTERVAL = 10
 
 
-def check_turn() -> bool:
+def check_turn() -> Dict[str, Any]:
     """
-    Check if it's this agent's turn to speak.
+    Check if it's this agent's turn and the debate status.
     
     Returns:
-        True if it's this agent's turn, False otherwise
+        A dictionary with 'is_our_turn' (bool) and 'debate_status' (str).
     """
     try:
-        logger.info(f"Checking if it's {ROLE}'s turn...")
+        logger.info(f"Checking turn and status for {ROLE}...")
         url = f"{MCP_SERVER_URL}/api/turn/{DEBATE_ID}"
         response = httpx.get(url)
         response.raise_for_status()
         
         data = response.json()
         is_our_turn = data.get("next_speaker") == ROLE
+        debate_status = data.get("status", "unknown") # Get status, default to unknown
         
         if is_our_turn:
-            logger.info(f"It's {ROLE}'s turn in round {data.get('current_round')}!")
+            logger.info(f"It's {ROLE}'s turn in round {data.get('current_round')}! Debate status: {debate_status}")
         else:
-            logger.debug(f"Not our turn. Current speaker: {data.get('next_speaker')}")
+            logger.debug(f"Not our turn. Current speaker: {data.get('next_speaker')}. Debate status: {debate_status}")
             
-        return is_our_turn
+        return {"is_our_turn": is_our_turn, "debate_status": debate_status}
     
     except Exception as e:
         logger.error(f"Error checking turn: {e}")
-        return False
+        return {"is_our_turn": False, "debate_status": "error"}
 
 
 def get_context() -> List[Dict[str, Any]]:
@@ -139,8 +140,13 @@ def main():
     
     while True:
         try:
-            # Check if it's our turn
-            if check_turn():
+            turn_info = check_turn()
+            
+            if turn_info["debate_status"] == "finished" or turn_info["debate_status"] == "error":
+                logger.info(f"Debate status is '{turn_info["debate_status"]}'. PRO agent '{AGENT_NAME}' stopping.")
+                break
+
+            if turn_info["is_our_turn"]:
                 # Get current context
                 messages = get_context()
                 

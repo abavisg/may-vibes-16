@@ -228,6 +228,7 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
             num_rounds=request.num_rounds,
             pro_agent_name=request.pro_agent_name if request.pro_agent_name else "ProAgentAlpha",
             con_agent_name=request.con_agent_name if request.con_agent_name else "ConAgentBeta",
+            moderator_agent_name=request.moderator_agent_name if request.moderator_agent_name else "ModeratorZeta",
             status=SessionStatus.PENDING
         )
         
@@ -280,7 +281,14 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
             # Handle error
             print(f"Warning: Failed to launch Con agent for debate {debate_id}")
 
-        # (Moderator agent launch can be added here later)
+        # Create .env and launch Moderator Agent
+        _create_agent_env_file(
+            project_root, "mod", debate_id, debate.moderator_agent_name, default_model, default_mcp_url
+        )
+        mod_process = _launch_agent_process(project_root, "mod")
+        if not mod_process:
+            # Handle error
+            print(f"Warning: Failed to launch Moderator agent for debate {debate_id}")
 
         # Return the debate information
         return CreateDebateResponse(
@@ -291,6 +299,7 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
             created_at=debate.created_at,
             pro_agent_name=debate.pro_agent_name,
             con_agent_name=debate.con_agent_name,
+            moderator_agent_name=debate.moderator_agent_name,
         )
     except Exception as e:
         # Log the error for debugging

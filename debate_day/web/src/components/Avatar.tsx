@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface AvatarProps {
-  sender: 'Pro' | 'Con' | 'Moderator';
+  sender: 'Pro' | 'Con' | 'Moderator' | 'System';
 }
 
 const Avatar: React.FC<AvatarProps> = ({ sender }) => {
@@ -9,6 +9,7 @@ const Avatar: React.FC<AvatarProps> = ({ sender }) => {
     if (sender === 'Pro') return 'P';
     if (sender === 'Con') return 'C';
     if (sender === 'Moderator') return 'M';
+    if (sender === 'System') return 'S';
     return '?';
   };
 
@@ -16,6 +17,7 @@ const Avatar: React.FC<AvatarProps> = ({ sender }) => {
     if (sender === 'Pro') return 'bg-blue-500';
     if (sender === 'Con') return 'bg-red-500';
     if (sender === 'Moderator') return 'bg-green-500';
+    if (sender === 'System') return 'bg-gray-700';
     return 'bg-gray-500';
   };
 
@@ -26,4 +28,4 @@ const Avatar: React.FC<AvatarProps> = ({ sender }) => {
   );
 };
 
-export default Avatar; 
+export default Avatar;
