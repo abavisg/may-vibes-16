@@ -19,10 +19,15 @@ from debate_day.protocol import MCPMessage, Role, MessageType
 from debate_day.agents.pro.strategy import build_prompt, parse_response
 from debate_day.agents.pro.llm_config import generate_response
 
+# Create logs directory at project root
+project_root = Path(__file__).parent.parent.parent.parent # This assumes agents/pro/main.py, so ../../../ is root
+logs_dir = project_root / "logs"
+logs_dir.mkdir(parents=True, exist_ok=True)
+
 # Configure logging
 logger.remove()
 logger.add(
-    "pro_agent_{time}.log",
+    logs_dir / "pro_agent_{time}.log", # Updated path
     rotation="10 MB",
     level="INFO",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"

@@ -9,7 +9,7 @@ A command-line application that simulates a debate between AI agents using local
 - Impartial moderator evaluation with declared winner
 - Uses local Ollama models for generating dynamic AI-driven content
 - Fallback to hardcoded responses if LLM is unavailable
-- Saves debate history to outputs directory
+- Saves agent logs to `logs/` directory
 - MCP server for centralized debate management
 - Autonomous agent architecture with modular design
 - CLI tools for orchestrating debates
@@ -32,6 +32,7 @@ To use this version, run:
 ```
 python debate_day/main.py
 ```
+*Note: This legacy version saved debate transcripts to an `outputs/` directory, which is now gitignored.*
 
 ### 2. Autonomous Agent Architecture (Current)
 
@@ -84,8 +85,10 @@ python cli_tools/run_debate.py
 This all-in-one script handles everything:
 1. Starts the MCP server
 2. Creates a new debate
-3. Launches all agents
+3. Launches all agents (Pro, Con, Moderator)
 4. Monitors all processes
+
+*Agent Configuration Note:* Scripts like `run_debate.py` and `start_debate.py` automatically generate `.env` files in each agent's directory (e.g., `debate_day/agents/pro/.env`) for runtime configuration. These files contain settings like the debate ID, model name, and MCP server URL. They are specific to a single debate run and are included in the `.gitignore` file to prevent them from being committed to version control.
 
 You can customize the topic, number of rounds, and agent names:
 
@@ -112,6 +115,10 @@ The viewer will show:
 - Who is speaking next
 - All debate messages organized by round
 - Final verdict and winner when the debate concludes
+
+### Logging
+
+All agents (Pro, Con, Moderator) now store their operational logs in a centralized `logs/` directory at the root of the project. Each agent run will create a new log file with a timestamp, e.g., `logs/pro_agent_2023-10-27_12-30-00.log`.
 
 ### Run the Legacy CLI Application
 
