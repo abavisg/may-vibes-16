@@ -16,6 +16,7 @@ class Role(str, Enum):
     PRO = "pro"
     CON = "con"
     MOD = "mod"
+    SYSTEM = "system"
 
 
 class MessageType(str, Enum):
@@ -222,7 +223,7 @@ def create_system_message(
     return MCPMessage(
         debate_id=debate_id,
         sender="system",
-        role="system",  # Using string instead of enum since "system" isn't in Role
+        role=Role.SYSTEM,
         round=round,
         content=content,
         message_type=message_type,

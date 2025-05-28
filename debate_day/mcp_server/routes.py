@@ -149,49 +149,61 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
     Returns:
         New debate session information
     """
-    # Generate a unique debate ID
-    debate_id = generate_debate_id()
-    
-    # Create the debate session
-    debate = DebateSession(
-        debate_id=debate_id,
-        topic=request.topic,
-        num_rounds=request.num_rounds,
-        status=SessionStatus.PENDING
-    )
-    
-    # Store the debate
-    db.create_debate(debate)
-    
-    # Create initial system message with the topic
-    system_message = MCPMessageRecord(
-        debate_id=debate_id,
-        message_id=generate_message_id(),
-        sender="system",
-        role="system",
-        round=0,
-        content=request.topic,
-        message_type=MessageType.SYSTEM,
-        metadata={"type": "topic"}
-    )
-    db.save_message(system_message)
-    
-    # Set initial turn (PRO goes first)
-    initial_turn = AgentTurn(
-        debate_id=debate_id,
-        current_round=0,
-        next_speaker=Role.PRO
-    )
-    db.set_agent_turn(initial_turn)
-    
-    # Return the debate information
-    return CreateDebateResponse(
-        debate_id=debate_id,
-        topic=request.topic,
-        num_rounds=request.num_rounds,
-        status=SessionStatus.PENDING,
-        created_at=debate.created_at
-    )
+    try:
+        # Generate a unique debate ID
+        debate_id = generate_debate_id()
+        
+        # Create the debate session
+        debate = DebateSession(
+            debate_id=debate_id,
+            topic=request.topic,
+            num_rounds=request.num_rounds,
+            status=SessionStatus.PENDING
+        )
+        
+        # Store the debate
+        db.create_debate(debate)
+        
+        # Create initial system message with the topic
+        message_id = generate_message_id()
+        system_message = MCPMessageRecord(
+            debate_id=debate_id,
+            message_id=message_id,
+            sender="system",
+            role=Role.SYSTEM,
+            round=0,
+            content=request.topic,
+            message_type=MessageType.SYSTEM,
+            metadata={"type": "topic"}
+        )
+        db.save_message(system_message)
+        
+        # Set initial turn (PRO goes first)
+        initial_turn = AgentTurn(
+            debate_id=debate_id,
+            current_round=0,
+            next_speaker=Role.PRO,
+            last_message_id=message_id
+        )
+        db.set_agent_turn(initial_turn)
+        
+        # Return the debate information
+        return CreateDebateResponse(
+            debate_id=debate_id,
+            topic=request.topic,
+            num_rounds=request.num_rounds,
+            status=SessionStatus.PENDING,
+            created_at=debate.created_at
+        )
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        logging.error(f"Error in start_debate: {str(e)}")
+        # Re-raise as HTTP exception
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create debate: {str(e)}"
+        )
 
 
 @router.post("/message/{debate_id}", status_code=status.HTTP_200_OK)
@@ -209,62 +221,82 @@ async def add_message(
     Returns:
         Status information
     """
-    # Check if debate exists
-    debate = db.get_debate(debate_id)
-    if not debate:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Debate with ID {debate_id} not found"
+    try:
+        # Check if debate exists
+        debate = db.get_debate(debate_id)
+        if not debate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Debate with ID {debate_id} not found"
+            )
+        
+        # Check if debate is finished
+        if debate.status == SessionStatus.FINISHED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot add messages to a finished debate"
+            )
+        
+        # Check if it's the sender's turn
+        turn = db.get_agent_turn(debate_id)
+        if not turn:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No turn information available for debate {debate_id}"
+            )
+            
+        if turn.next_speaker != request.role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"It's not {request.role}'s turn to speak"
+            )
+        
+        # Determine message type based on role and round
+        message_type = MessageType.ARGUMENT
+        if request.role == Role.MOD:
+            message_type = MessageType.VERDICT
+        elif turn.current_round > 0:
+            message_type = MessageType.REBUTTAL
+        elif request.role == Role.CON:
+            message_type = MessageType.COUNTER
+        
+        # Create the message record
+        message_id = generate_message_id()
+        message = MCPMessageRecord(
+            debate_id=debate_id,
+            message_id=message_id,
+            sender=request.sender,
+            role=request.role,
+            round=turn.current_round,
+            content=request.content,
+            message_type=message_type,
+            metadata=request.metadata or {}
         )
-    
-    # Check if debate is finished
-    if debate.status == SessionStatus.FINISHED:
+        
+        # Save the message
+        db.save_message(message)
+        
+        # Update debate status and turn
+        _update_debate_status_after_message(debate_id, message)
+        
+        # Return success
+        return {
+            "status": "success",
+            "message_id": message.message_id,
+            "debate_id": debate_id
+        }
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        logging.error(f"Error in add_message: {str(e)}")
+        # Re-raise as HTTP exception
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot add messages to a finished debate"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to add message: {str(e)}"
         )
-    
-    # Check if it's the sender's turn
-    turn = db.get_agent_turn(debate_id)
-    if not turn or turn.next_speaker != request.role:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"It's not {request.role}'s turn to speak"
-        )
-    
-    # Determine message type based on role and round
-    message_type = MessageType.ARGUMENT
-    if request.role == Role.MOD:
-        message_type = MessageType.VERDICT
-    elif turn.current_round > 0:
-        message_type = MessageType.REBUTTAL
-    elif request.role == Role.CON:
-        message_type = MessageType.COUNTER
-    
-    # Create the message record
-    message = MCPMessageRecord(
-        debate_id=debate_id,
-        message_id=generate_message_id(),
-        sender=request.sender,
-        role=request.role,
-        round=turn.current_round,
-        content=request.content,
-        message_type=message_type,
-        metadata=request.metadata or {}
-    )
-    
-    # Save the message
-    db.save_message(message)
-    
-    # Update debate status and turn
-    _update_debate_status_after_message(debate_id, message)
-    
-    # Return success
-    return {
-        "status": "success",
-        "message_id": message.message_id,
-        "debate_id": debate_id
-    }
 
 
 @router.get("/context/{debate_id}", response_model=List[Dict[str, Any]])
