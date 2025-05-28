@@ -178,7 +178,7 @@ def start_debate(
     # Build the request payload
     payload = {
         "topic": topic,
-        "rounds": rounds,
+        "num_rounds": rounds,
         "debate_id": debate_id
     }
     
@@ -190,11 +190,11 @@ def start_debate(
         
         result = response.json()
         print(f"Debate started successfully!")
-        print(f"Debate ID: {debate_id}")
+        print(f"Debate ID: {result['debate_id']}")
         print(f"Topic: {topic}")
         print(f"Rounds: {rounds}")
         
-        return debate_id
+        return result['debate_id']
     
     except Exception as e:
         print(f"Error starting debate: {e}")

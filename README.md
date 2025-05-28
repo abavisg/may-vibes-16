@@ -13,6 +13,7 @@ A command-line application that simulates a debate between AI agents using local
 - MCP server for centralized debate management
 - Autonomous agent architecture with modular design
 - CLI tools for orchestrating debates
+- Real-time debate viewer for monitoring debate progress
 
 ## Architectures
 
@@ -43,7 +44,7 @@ The newer implementation uses standalone agents that communicate via the MCP ser
 
 To use this version, run:
 ```
-python cli_tools/start_debate.py --topic "Your topic here" --launch-agents
+python cli_tools/run_debate.py
 ```
 
 ## Requirements
@@ -52,6 +53,7 @@ python cli_tools/start_debate.py --topic "Your topic here" --launch-agents
 - Ollama (running locally with llama3 model)
 - FastAPI and uvicorn (for MCP server)
 - httpx for HTTP requests
+- loguru for logging
 
 ## Installation
 
@@ -60,12 +62,56 @@ python cli_tools/start_debate.py --topic "Your topic here" --launch-agents
    ```
    pip install -e .
    ```
-3. Make sure Ollama is running locally with the llama3 model:
+3. Install additional dependencies:
+   ```
+   pip install httpx loguru
+   ```
+4. Make sure Ollama is running locally with the llama3 model:
    ```
    ollama run llama3
    ```
 
 ## Usage
+
+### Quickstart (Recommended)
+
+Run a complete debate with a single command:
+
+```
+python cli_tools/run_debate.py
+```
+
+This all-in-one script handles everything:
+1. Starts the MCP server
+2. Creates a new debate
+3. Launches all agents
+4. Monitors all processes
+
+You can customize the topic, number of rounds, and agent names:
+
+```
+python cli_tools/run_debate.py --topic "Democracy is the best form of government" --rounds 2 --pro-name Alice --con-name Bob
+```
+
+### View a Running Debate
+
+You can watch the progress of a debate in real-time using the debate viewer:
+
+```
+python cli_tools/view_debate.py --debate-id YOUR_DEBATE_ID
+```
+
+This will display the debate messages with color-coding for each participant and automatically refresh as new messages arrive. Options include:
+
+- `--clear`: Clear the terminal between updates for a cleaner display
+- `--refresh 1.0`: Set the refresh interval in seconds (default: 2.0)
+- `--mcp-url`: Specify a custom MCP server URL if not using the default
+
+The viewer will show:
+- Current debate status and round information
+- Who is speaking next
+- All debate messages organized by round
+- Final verdict and winner when the debate concludes
 
 ### Run the Legacy CLI Application
 
@@ -98,6 +144,22 @@ Use the debate bootstrapper to start a new debate and optionally launch all agen
 
 ```
 python cli_tools/start_debate.py --topic "Artificial intelligence will ultimately benefit humanity" --rounds 2 --launch-agents
+```
+
+For more options and examples, see the [CLI Tools documentation](cli_tools/README.md).
+
+### Launch Agents for an Existing Debate
+
+If you've already started a debate but need to launch or relaunch agents:
+
+```
+python cli_tools/launch_agents.py --debate-id your-debate-id
+```
+
+You can also launch a specific agent:
+
+```
+python cli_tools/launch_agents.py --debate-id your-debate-id --role pro
 ```
 
 For more options and examples, see the [CLI Tools documentation](cli_tools/README.md).

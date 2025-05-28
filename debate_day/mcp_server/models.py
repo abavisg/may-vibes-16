@@ -130,12 +130,14 @@ class CreateDebateRequest(BaseModel):
     """Request model for creating a new debate."""
     topic: str = Field(..., description="The topic to debate")
     num_rounds: int = Field(1, description="Number of rounds (default: 1)")
+    debate_id: Optional[str] = Field(None, description="Custom debate ID (auto-generated if not provided)")
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "topic": "Artificial intelligence will benefit humanity more than it will harm it.",
-                "num_rounds": 2
+                "num_rounds": 2,
+                "debate_id": "custom-debate-123"
             }
         }
     )

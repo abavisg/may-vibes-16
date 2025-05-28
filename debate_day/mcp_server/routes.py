@@ -150,8 +150,8 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
         New debate session information
     """
     try:
-        # Generate a unique debate ID
-        debate_id = generate_debate_id()
+        # Use provided debate_id or generate a new one
+        debate_id = request.debate_id if request.debate_id else generate_debate_id()
         
         # Create the debate session
         debate = DebateSession(
