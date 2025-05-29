@@ -13,7 +13,7 @@ A command-line application that simulates a debate between AI agents using local
 - MCP server for centralized debate management
 - Autonomous agent architecture with modular design
 - CLI tools for orchestrating debates
-- Real-time debate viewer for monitoring debate progress
+- Future Flutter-based web UI for debate visualization (coming soon)
 
 ## Architectures
 
@@ -192,6 +192,10 @@ The system includes three specialized agent modules:
 - **Moderator Agent**: Evaluates arguments and declares a winner
 
 Each agent is implemented as a standalone module in the `debate_day/agents` directory with its own configuration and strategy.
+
+## Future Development
+
+- **Flutter-based Web UI**: A new web interface built with Flutter is planned for future development, which will provide a more robust and cross-platform debate visualization experience.
 
 ## Sample Topics
 
