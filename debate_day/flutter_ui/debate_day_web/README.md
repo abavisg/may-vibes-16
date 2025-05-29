@@ -17,6 +17,7 @@ This application uses:
 - **Flutter for Web**: Cross-platform UI framework
 - **Provider**: Simple state management
 - **HTTP**: REST API communication with the Python backend
+- **Extensive Error Handling**: Robust error catching and logging for debugging
 
 ## Project Structure
 
@@ -34,6 +35,32 @@ lib/
 └── services/
     └── api_service.dart     // REST API client for backend
 ```
+
+## Error Handling & Debugging
+
+This application includes comprehensive error handling and logging:
+
+- **Global Error Handling**: Catches and logs all Flutter framework errors
+- **Zone-based Error Capture**: Captures errors outside Flutter's scope
+- **API Response Validation**: Validates all API responses for required fields
+- **Null Safety**: Careful handling of nullable values to prevent null errors
+- **API Availability Check**: Checks if the API server is available and shows warnings if not
+- **Fallback Mechanisms**: Can generate local IDs and default values when API responses are incomplete
+- **Debug Logging**: Extensive logging when in debug mode for:
+  - API requests and responses
+  - Data parsing and validation
+  - UI state changes
+  - Error details with stack traces
+
+Debug logs use emoji prefixes for easy identification:
+- 🚀 - Application startup/initialization
+- 📡 - API operations
+- 📦 - Data parsing/model creation
+- ⚠️ - Warnings (non-fatal issues)
+- ⛔ - Errors
+- 🔴 - Fatal/uncaught errors
+- ✅ - Successful operations
+- 🔄 - Background operations (polling)
 
 ## Setup & Running
 
