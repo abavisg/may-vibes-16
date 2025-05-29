@@ -56,146 +56,139 @@ python cli_tools/run_debate.py
 - httpx for HTTP requests
 - loguru for logging
 
-## Installation
+## Getting Started
 
-1. Clone the repository
-2. Install the package in development mode:
-   ```
-   pip install -e .
-   ```
-3. Install additional dependencies:
-   ```
-   pip install httpx loguru
-   ```
-4. Make sure Ollama is running locally with the llama3 model:
-   ```
-   ollama run llama3
-   ```
+### Prerequisites
 
-## Usage
+- Python 3.9+
+- Flutter/Dart SDK (for the Flutter UI)
+- Ollama with llama3 model installed
 
-### Quickstart (Recommended)
+### Installation
 
-Run a complete debate with a single command:
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd debate-day-2.0
+```
 
+2. Install the package:
+```bash
+pip install -e .
+```
+
+3. Start Ollama with the required model:
+```bash
+ollama run llama3
+```
+
+4. Start the MCP server:
+```bash
+python debate_day/run_mcp_server.py --reload
+```
+
+The MCP server will now **automatically launch agents** whenever a new debate is created from the Flutter UI!
+
+### Running the Flutter UI
+
+1. Navigate to the Flutter app:
+```bash
+cd debate_day/flutter_ui/debate_day_web
+```
+
+2. Install dependencies:
+```bash
+flutter pub get
+```
+
+3. Run the app:
+```bash
+flutter run -d chrome
+```
+
+### How It Works
+
+1. **Start a Debate**: Use the Flutter UI to enter a topic and number of rounds
+2. **Automatic Agent Launch**: The MCP server automatically:
+   - Creates the debate with a unique ID
+   - Configures each agent with the debate ID
+   - Launches the pro, con, and moderator agents
+3. **Watch the Debate**: The agents will automatically participate in the debate, which you can watch in real-time in the Flutter UI
+
+## Architecture
+
+The system offers two different architectures:
+
+### 1. CrewAI-Based Architecture (Legacy)
+
+The original implementation uses the CrewAI framework:
+
+- **Controller**: Manages debate flow, turns, rounds, and context
+- **Tasks**: Generate content for each agent (Pro, Con, Moderator)
+- **Crew**: Coordinates agents using the CrewAI framework
+- **LLM Integration**: Uses CrewAI's LLM class to connect with local Ollama models
+
+To use this version, run:
+```
+python debate_day/main.py
+```
+*Note: This legacy version saved debate transcripts to an `outputs/` directory, which is now gitignored.*
+
+### 2. Autonomous Agent Architecture (Current)
+
+The newer implementation uses standalone agents that communicate via the MCP server:
+
+- **MCP Server**: FastAPI-based central server for debate management
+- **Protocol**: Defines message formats and standardizes communication
+- **Agent Modules**: Self-contained agent implementations in dedicated directories
+- **CLI Tools**: Utilities for starting debates and managing agents
+
+To use this version, run:
 ```
 python cli_tools/run_debate.py
 ```
 
-This all-in-one script handles everything:
-1. Starts the MCP server
-2. Creates a new debate
-3. Launches all agents (Pro, Con, Moderator)
-4. Monitors all processes
+## Development Process
 
-*Agent Configuration Note:* Scripts like `run_debate.py` and `start_debate.py` automatically generate `.env` files in each agent's directory (e.g., `debate_day/agents/pro/.env`) for runtime configuration. These files contain settings like the debate ID, model name, and MCP server URL. They are specific to a single debate run and are included in the `.gitignore` file to prevent them from being committed to version control.
+## Troubleshooting
 
-You can customize the topic, number of rounds, and agent names:
+### Issue: Agents not participating in debates
 
-```
-python cli_tools/run_debate.py --topic "Democracy is the best form of government" --rounds 2 --pro-name Alice --con-name Bob
-```
+**Problem**: Agents aren't responding after creating a debate in the Flutter UI.
 
-### View a Running Debate
+**Solutions**:
 
-You can watch the progress of a debate in real-time using the debate viewer:
+1. **Check MCP Server**: Ensure the MCP server is running with the latest code:
+   ```bash
+   python debate_day/run_mcp_server.py --reload
+   ```
 
-```
-python cli_tools/view_debate.py --debate-id YOUR_DEBATE_ID
-```
+2. **Check Ollama**: Make sure Ollama is running with the llama3 model:
+   ```bash
+   ollama list  # Should show llama3
+   ollama run llama3  # If not running
+   ```
 
-This will display the debate messages with color-coding for each participant and automatically refresh as new messages arrive. Options include:
+3. **Check Agent Logs**: Look in the `logs/` directory for agent-specific error messages
 
-- `--clear`: Clear the terminal between updates for a cleaner display
-- `--refresh 1.0`: Set the refresh interval in seconds (default: 2.0)
-- `--mcp-url`: Specify a custom MCP server URL if not using the default
+4. **Manual Agent Launch** (if automatic launch fails):
+   Find the debate ID from the Flutter UI and run:
+   ```bash
+   python3 cli_tools/launch_agents.py \
+       --debate-id "YOUR_DEBATE_ID" \
+       --role all
+   ```
 
-The viewer will show:
-- Current debate status and round information
-- Who is speaking next
-- All debate messages organized by round
-- Final verdict and winner when the debate concludes
+### Issue: MCP Server Connection Errors
 
-### Logging
+**Problem**: Flutter UI shows "API server appears to be offline"
 
-All agents (Pro, Con, Moderator) now store their operational logs in a centralized `logs/` directory at the root of the project. Each agent run will create a new log file with a timestamp, e.g., `logs/pro_agent_2023-10-27_12-30-00.log`.
+**Solution**: 
+- Ensure the MCP server is running on `http://localhost:8000`
+- Check that no firewall is blocking port 8000
+- Try accessing `http://localhost:8000/docs` in your browser
 
-### Run the Legacy CLI Application
-
-Run the original command-line application:
-
-```
-python debate_day/main.py
-```
-
-Follow the prompts to:
-1. Enter a debate topic (or use the default)
-2. Select the number of rebuttals (0-3)
-
-The debate will run automatically, and the results will be saved to the `outputs` directory.
-
-### Run the MCP Server
-
-The MCP (Model Context Protocol) server provides a central communication hub for the debate system:
-
-```
-cd debate_day
-python run_mcp_server.py
-```
-
-This will start the server on http://localhost:8000. You can access the API documentation at http://localhost:8000/docs.
-
-### Start a Debate with CLI Tools
-
-Use the debate bootstrapper to start a new debate and optionally launch all agents:
-
-```
-python cli_tools/start_debate.py --topic "Artificial intelligence will ultimately benefit humanity" --rounds 2 --launch-agents
-```
-
-For more options and examples, see the [CLI Tools documentation](cli_tools/README.md).
-
-### Launch Agents for an Existing Debate
-
-If you've already started a debate but need to launch or relaunch agents:
-
-```
-python cli_tools/launch_agents.py --debate-id your-debate-id
-```
-
-You can also launch a specific agent:
-
-```
-python cli_tools/launch_agents.py --debate-id your-debate-id --role pro
-```
-
-For more options and examples, see the [CLI Tools documentation](cli_tools/README.md).
-
-## API Endpoints
-
-The MCP server provides the following endpoints:
-
-- `POST /api/start` - Start a new debate
-- `POST /api/message/{debate_id}` - Add a message to a debate
-- `GET /api/context/{debate_id}` - Get message history
-- `GET /api/turn/{debate_id}` - Get turn information
-- `GET /api/status/{debate_id}` - Get debate status
-- `GET /api/debates` - List all debates
-- `GET /api/debate/{debate_id}` - Get detailed debate information
-
-## Agent Modules
-
-The system includes three specialized agent modules:
-
-- **Pro Agent**: Argues in favor of the debate topic
-- **Con Agent**: Argues against the debate topic
-- **Moderator Agent**: Evaluates arguments and declares a winner
-
-Each agent is implemented as a standalone module in the `debate_day/agents` directory with its own configuration and strategy.
-
-## Future Development
-
-- **Flutter-based Web UI**: A new web interface built with Flutter is planned for future development, which will provide a more robust and cross-platform debate visualization experience.
+## License
 
 ## Sample Topics
 
@@ -218,50 +211,4 @@ Key features of the LLM integration:
 - Context-aware prompts that include debate history
 - Round-specific prompt engineering for each agent
 - Fallback mechanism to ensure robustness
-- Clean-up of LLM responses to match debate format
-
-## Development Process
-
-## Troubleshooting
-
-### Issue: Agents fail with "400 Bad Request" errors
-
-**Problem**: The Flutter UI creates a debate with one ID, but the agents are using a different debate ID.
-
-**Symptoms**:
-- Agent logs show errors like: `Error sending message: Client error '400 Bad Request'`
-- Flutter UI shows the debate is waiting for agents to respond
-- Agents appear to be running but can't send messages
-
-**Solution**: 
-
-1. **Find the correct debate ID from Flutter UI logs**:
-   Look for a line like:
-   ```
-   🚀 Extracted debate_id from API: f69f384e-ac81-4e69-956a-fb298d52330e
-   ```
-
-2. **Launch agents with the correct debate ID**:
-   ```bash
-   python3 cli_tools/launch_agents.py \
-       --debate-id "YOUR_DEBATE_ID_HERE" \
-       --role all \
-       --pro-name "ProAgentAlpha" \
-       --con-name "ConAgentBeta" \
-       --mod-name "ModeratorZeta" \
-       --no-checks
-   ```
-
-3. **Alternative: Use the watch script** (coming soon):
-   A debate watcher script will automatically detect new debates from the Flutter UI and launch agents with the correct ID.
-
-**Prevention**: 
-- Always launch agents using the debate ID shown in the Flutter UI
-- Don't create debates through both the CLI and Flutter UI simultaneously
-- Check that only one set of agents is running per debate
-
-### Issue: Multiple debate IDs created
-
-**Problem**: The Flutter UI might create multiple debate IDs during the start process.
-
 - Clean-up of LLM responses to match debate format 
