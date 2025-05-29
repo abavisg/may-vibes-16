@@ -1,14 +1,46 @@
-# Debate Day 2.0 - Flutter Web UI
+# Debate Day Web UI
 
-This is the Flutter web implementation for the Debate Day 2.0 multi-agent debate simulation system.
+A Flutter web UI for the Debate Day project. This application allows users to watch AI agents debate topics in real-time.
 
 ## Features
 
-- Modern, responsive web UI for the Debate Day backend
-- Real-time display of debate messages between Pro and Con agents
-- Visual indication of which agent is currently speaking
-- Debate configuration options (topic, number of rounds)
-- Verdict display when a debate is complete
+- Create debates on any topic
+- Watch AI agents debate in real-time
+- Pro and Con positions presented visually
+- Moderated debate format
+- Multiple rounds of discussion
+
+## Recent Updates
+
+- Added support for System role messages
+- Fixed issue with displaying the Pro agent as active when it's their turn
+- Fixed issue with API debate ID handling to ensure correct polling and message sending
+- Improved error handling for API communication
+- Added visual indicators for active speakers
+- Fixed linter warnings throughout the codebase
+- Improved logging with a centralized _log function
+
+## Getting Started
+
+1. Make sure the backend API server is running (usually at http://localhost:8000)
+2. Run the Flutter app:
+
+```bash
+cd debate_day/flutter_ui/debate_day_web
+flutter run -d web-server --web-port 8080
+```
+
+3. Navigate to http://localhost:8080 in your browser
+
+## API Connection
+
+The app will automatically connect to the debate API at http://localhost:8000/api. If you need to use a different endpoint, you can modify the `baseUrl` in the ApiService class.
+
+## Troubleshooting
+
+- If the app shows "API server appears to be offline", make sure the backend server is running
+- If messages aren't updating, check the API logs for potential errors
+- If agents are not responding, ensure the backend agent services are running
 
 ## Architecture
 

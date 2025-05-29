@@ -218,4 +218,50 @@ Key features of the LLM integration:
 - Context-aware prompts that include debate history
 - Round-specific prompt engineering for each agent
 - Fallback mechanism to ensure robustness
+- Clean-up of LLM responses to match debate format
+
+## Development Process
+
+## Troubleshooting
+
+### Issue: Agents fail with "400 Bad Request" errors
+
+**Problem**: The Flutter UI creates a debate with one ID, but the agents are using a different debate ID.
+
+**Symptoms**:
+- Agent logs show errors like: `Error sending message: Client error '400 Bad Request'`
+- Flutter UI shows the debate is waiting for agents to respond
+- Agents appear to be running but can't send messages
+
+**Solution**: 
+
+1. **Find the correct debate ID from Flutter UI logs**:
+   Look for a line like:
+   ```
+   🚀 Extracted debate_id from API: f69f384e-ac81-4e69-956a-fb298d52330e
+   ```
+
+2. **Launch agents with the correct debate ID**:
+   ```bash
+   python3 cli_tools/launch_agents.py \
+       --debate-id "YOUR_DEBATE_ID_HERE" \
+       --role all \
+       --pro-name "ProAgentAlpha" \
+       --con-name "ConAgentBeta" \
+       --mod-name "ModeratorZeta" \
+       --no-checks
+   ```
+
+3. **Alternative: Use the watch script** (coming soon):
+   A debate watcher script will automatically detect new debates from the Flutter UI and launch agents with the correct ID.
+
+**Prevention**: 
+- Always launch agents using the debate ID shown in the Flutter UI
+- Don't create debates through both the CLI and Flutter UI simultaneously
+- Check that only one set of agents is running per debate
+
+### Issue: Multiple debate IDs created
+
+**Problem**: The Flutter UI might create multiple debate IDs during the start process.
+
 - Clean-up of LLM responses to match debate format 
