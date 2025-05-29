@@ -1,19 +1,49 @@
 # Debate Day
 
-A command-line application that simulates a debate between AI agents using local LLM models, with two distinct architecture options.
+A command-line application that simulates a debate between AI agents using local LLM models, with a modern Flutter web UI for real-time debate visualization.
 
 ## Features
 
-- Debate between Pro and Con AI agents on any topic
-- Configurable number of rebuttals (0-3)
-- Impartial moderator evaluation with declared winner
-- Uses local Ollama models for generating dynamic AI-driven content
-- Fallback to hardcoded responses if LLM is unavailable
-- Saves agent logs to `logs/` directory
-- MCP server for centralized debate management
-- Autonomous agent architecture with modular design
-- CLI tools for orchestrating debates
-- Future Flutter-based web UI for debate visualization (coming soon)
+- **Real-time debate visualization**: Watch AI agents debate in a modern web interface
+- **Automatic agent management**: Agents are automatically launched when debates are created
+- **Debate between Pro and Con AI agents** on any topic with configurable rounds (1-10)
+- **Impartial moderator evaluation** with declared winner
+- **Local LLM integration** using Ollama models for dynamic AI-driven content
+- **Fallback responses** if LLM is unavailable
+- **Comprehensive logging** saved to `logs/` directory
+- **MCP server** for centralized debate management
+- **Autonomous agent architecture** with modular design
+- **CLI tools** for orchestrating debates
+- **Modern Flutter UI** with responsive design and real-time updates
+- **Personalized AI agents**: Meet Ava (Pro), Ben (Con), and Mia (Moderator) with custom avatars
+
+## Meet the Debate Team
+
+🎭 **Ava** - Pro Agent (Female)
+- Argues in favor of the debate topic
+- Expert at presenting compelling evidence and logical arguments
+- Shown on the left side of the debate interface in blue
+
+👨‍💼 **Ben** - Con Agent (Male)  
+- Argues against the debate topic
+- Skilled at finding counterpoints and challenging assumptions
+- Shown on the right side of the debate interface in red
+
+👩‍⚖️ **Mia** - Moderator (Female)
+- Impartial judge who evaluates both sides
+- Provides thoughtful analysis and declares the winner
+- Shown at the bottom of the interface in amber/yellow
+
+## Recent Updates (v2.1)
+
+- ✅ **Fixed rounds bug**: Debates now properly run for the requested number of rounds (1-10)
+- ✅ **Improved UI layout**: More compact design with better space utilization
+- ✅ **Enhanced moderator panel**: Left-aligned, compact layout with clear status indicators
+- ✅ **Automatic agent launching**: No more manual agent management required
+- ✅ **Real-time updates**: Live debate progress in the Flutter UI
+- ✅ **Personalized agents**: Custom names and professional avatar images
+- ✅ **Compact fonts**: Smaller, more readable text throughout the interface
+- ✅ **Fixed rounds logic**: Corrected issue where selecting 5 rounds only resulted in 2-3 actual rounds
 
 ## Architectures
 
@@ -55,6 +85,7 @@ python cli_tools/run_debate.py
 - FastAPI and uvicorn (for MCP server)
 - httpx for HTTP requests
 - loguru for logging
+- Flutter/Dart SDK (for the web UI)
 
 ## Getting Started
 

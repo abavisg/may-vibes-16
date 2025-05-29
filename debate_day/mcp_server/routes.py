@@ -64,17 +64,12 @@ def _determine_next_speaker(debate_id: str, current_round: int, current_role: Ro
         # After PRO speaks, CON always goes next
         return Role.CON
     elif current_role == Role.CON:
-        # After CON speaks in round 0, either go to round 1 or to MOD
-        if current_round == 0:
-            # If no additional rounds, go to moderator
-            if debate.num_rounds == 0:
-                return Role.MOD
-            # Otherwise start round 1 with PRO
-            return Role.PRO
-        # After CON speaks in last round, go to moderator
-        elif current_round >= debate.num_rounds:
+        # After CON speaks, check if we should continue to next round or end
+        # Rounds are 0-indexed, so if we have num_rounds=5, valid rounds are 0,1,2,3,4
+        # After CON speaks in the final round (current_round == num_rounds-1), go to moderator
+        if current_round >= debate.num_rounds - 1:
             return Role.MOD
-        # Otherwise continue to next round
+        # Otherwise continue to next round with PRO
         else:
             return Role.PRO
     elif current_role == Role.MOD:
@@ -102,7 +97,7 @@ def _update_debate_status_after_message(debate_id: str, message: MCPMessageRecor
     next_round = current_round
     
     # If CON just spoke and it's not the final round, increment round
-    if message.role == Role.CON and current_round < debate.num_rounds:
+    if message.role == Role.CON and current_round < debate.num_rounds - 1:
         next_round = current_round + 1
     
     # If MOD just spoke, debate is finished
@@ -225,10 +220,10 @@ async def start_debate(request: CreateDebateRequest) -> CreateDebateResponse:
         debate = DebateSession(
             debate_id=debate_id,
             topic=request.topic,
-            num_rounds=max(0, request.num_rounds - 1),
-            pro_agent_name=request.pro_agent_name if request.pro_agent_name else "ProAgentAlpha",
-            con_agent_name=request.con_agent_name if request.con_agent_name else "ConAgentBeta",
-            moderator_agent_name=request.moderator_agent_name if request.moderator_agent_name else "ModeratorZeta",
+            num_rounds=request.num_rounds,
+            pro_agent_name=request.pro_agent_name if request.pro_agent_name else "Ava",
+            con_agent_name=request.con_agent_name if request.con_agent_name else "Ben",
+            moderator_agent_name=request.moderator_agent_name if request.moderator_agent_name else "Mia",
             status=SessionStatus.PENDING
         )
         

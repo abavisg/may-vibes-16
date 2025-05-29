@@ -68,7 +68,7 @@ def parse_arguments():
         "--pro-name", 
         "--pro_name",
         type=str, 
-        default="Alex",
+        default="Ava",
         dest="pro_name",
         help="Name for the Pro agent (default: Ava)"
     )
