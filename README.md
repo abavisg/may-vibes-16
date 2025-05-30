@@ -34,7 +34,7 @@ A command-line application that simulates a debate between AI agents using local
 - Provides thoughtful analysis and declares the winner
 - Shown at the bottom of the interface in amber/yellow
 
-## Recent Updates (v2.1)
+## Recent Updates (v2.2)
 
 - ✅ **Fixed rounds bug**: Debates now properly run for the requested number of rounds (1-10)
 - ✅ **Improved UI layout**: More compact design with better space utilization
@@ -44,39 +44,23 @@ A command-line application that simulates a debate between AI agents using local
 - ✅ **Personalized agents**: Custom names and professional avatar images
 - ✅ **Compact fonts**: Smaller, more readable text throughout the interface
 - ✅ **Fixed rounds logic**: Corrected issue where selecting 5 rounds only resulted in 2-3 actual rounds
+- ✅ **Codebase cleanup**: Removed legacy CrewAI components and unnecessary files
+- ✅ **Consolidated documentation**: Single comprehensive README
+- ✅ **Code quality improvements**: Fixed all Flutter/Dart linting issues for cleaner, more maintainable code
+  - Resolved cascade invocations optimization in API service
+  - Converted block function bodies to expression bodies where appropriate
+  - Added proper type annotations for better type safety
+  - Improved code formatting and line length compliance
 
-## Architectures
+## Architecture
 
-The system offers two different architectures:
-
-### 1. CrewAI-Based Architecture (Legacy)
-
-The original implementation uses the CrewAI framework:
-
-- **Controller**: Manages debate flow, turns, rounds, and context
-- **Tasks**: Generate content for each agent (Pro, Con, Moderator)
-- **Crew**: Coordinates agents using the CrewAI framework
-- **LLM Integration**: Uses CrewAI's LLM class to connect with local Ollama models
-
-To use this version, run:
-```
-python debate_day/main.py
-```
-*Note: This legacy version saved debate transcripts to an `outputs/` directory, which is now gitignored.*
-
-### 2. Autonomous Agent Architecture (Current)
-
-The newer implementation uses standalone agents that communicate via the MCP server:
+The system uses an **Autonomous Agent Architecture** with standalone agents that communicate via the MCP server:
 
 - **MCP Server**: FastAPI-based central server for debate management
 - **Protocol**: Defines message formats and standardizes communication
 - **Agent Modules**: Self-contained agent implementations in dedicated directories
 - **CLI Tools**: Utilities for starting debates and managing agents
-
-To use this version, run:
-```
-python cli_tools/run_debate.py
-```
+- **Flutter Web UI**: Modern web interface for real-time debate visualization
 
 ## Requirements
 
@@ -146,40 +130,142 @@ flutter run -d chrome
    - Launches the pro, con, and moderator agents
 3. **Watch the Debate**: The agents will automatically participate in the debate, which you can watch in real-time in the Flutter UI
 
-## Architecture
+## CLI Tools
 
-The system offers two different architectures:
+The `cli_tools/` directory contains command-line utilities for managing debates:
 
-### 1. CrewAI-Based Architecture (Legacy)
+### run_debate.py
 
-The original implementation uses the CrewAI framework:
+All-in-one solution that handles the entire debate workflow:
 
-- **Controller**: Manages debate flow, turns, rounds, and context
-- **Tasks**: Generate content for each agent (Pro, Con, Moderator)
-- **Crew**: Coordinates agents using the CrewAI framework
-- **LLM Integration**: Uses CrewAI's LLM class to connect with local Ollama models
-
-To use this version, run:
-```
-python debate_day/main.py
-```
-*Note: This legacy version saved debate transcripts to an `outputs/` directory, which is now gitignored.*
-
-### 2. Autonomous Agent Architecture (Current)
-
-The newer implementation uses standalone agents that communicate via the MCP server:
-
-- **MCP Server**: FastAPI-based central server for debate management
-- **Protocol**: Defines message formats and standardizes communication
-- **Agent Modules**: Self-contained agent implementations in dedicated directories
-- **CLI Tools**: Utilities for starting debates and managing agents
-
-To use this version, run:
-```
-python cli_tools/run_debate.py
+```bash
+python cli_tools/run_debate.py --topic "AI will benefit humanity" --rounds 3
 ```
 
-## Development Process
+**Options:**
+- `--topic`: The debate topic/resolution
+- `--rounds`: Number of debate rounds (1-10)
+- `--model`: Model to use for all agents (default: llama3)
+- `--pro-name`: Name for the Pro agent (default: Ava)
+- `--con-name`: Name for the Con agent (default: Ben)
+- `--mod-name`: Name for the Moderator agent (default: Mia)
+- `--port`: Port for the MCP server (default: 8000)
+
+### start_debate.py
+
+Initialize a new debate via the MCP server:
+
+```bash
+python cli_tools/start_debate.py --topic "Democracy is the best form of government" --rounds 2 --launch-agents
+```
+
+### view_debate.py
+
+Real-time viewer for ongoing debates:
+
+```bash
+python cli_tools/view_debate.py --debate-id YOUR_DEBATE_ID
+```
+
+### launch_agents.py
+
+Launch agents for an existing debate:
+
+```bash
+python cli_tools/launch_agents.py --debate-id YOUR_DEBATE_ID --role all
+```
+
+## Flutter Web UI
+
+### Features
+
+- Create debates on any topic with 1-10 rounds
+- Watch AI agents debate in real-time
+- Pro and Con positions presented visually
+- Moderated debate format with winner declaration
+- Responsive design with modern UI
+- Real-time polling for updates
+- Comprehensive error handling
+
+### Architecture
+
+- **Flutter for Web**: Cross-platform UI framework
+- **Provider**: Simple state management
+- **HTTP**: REST API communication with the Python backend
+- **Extensive Error Handling**: Robust error catching and logging
+
+### Project Structure
+
+```
+lib/
+├── main.dart                // App entry point and theming
+├── pages/
+│   └── debate_page.dart     // Main vertical split UI
+├── widgets/
+│   ├── avatar_widget.dart   // Agent avatar display
+│   ├── message_bubble.dart  // Message display widget
+│   └── toolbar.dart         // Top toolbar with debate controls
+├── models/
+│   └── debate_models.dart   // Data models for debate entities
+└── services/
+    └── api_service.dart     // REST API client for backend
+```
+
+### API Integration
+
+The Flutter app communicates with the backend API:
+
+- `POST /api/start` - Start a new debate
+- `GET /api/context/{debate_id}` - Get message history
+- `GET /api/turn/{debate_id}` - Check whose turn it is
+- `GET /api/status/{debate_id}` - Check debate status
+- `GET /api/debate/{debate_id}` - Get detailed debate info
+
+## Agent System
+
+### Agent Configuration
+
+Each agent is configured via `.env` files:
+
+```
+ROLE=pro                            # Agent role (pro/con/mod)
+MODEL=llama3                        # Ollama model to use
+MCP_SERVER_URL=http://localhost:8000 # MCP server URL
+AGENT_NAME=Ava                      # Agent's display name
+DEBATE_ID=debate-id-here            # Debate to participate in
+```
+
+### Agent Features
+
+- **Automatic polling** of MCP server to determine turns
+- **Context-aware prompts** based on debate history
+- **Round-specific strategies** for initial arguments vs rebuttals
+- **Ollama integration** for LLM-powered responses
+- **Comprehensive logging** for debugging
+- **Graceful error handling** with fallback responses
+
+### Agent Strategies
+
+**Pro Agent (Ava):**
+- Round 0: Strong initial arguments in favor
+- Later rounds: Rebuttals addressing Con's points while reinforcing Pro position
+
+**Con Agent (Ben):**
+- Round 0: Critical counter-arguments against the topic
+- Later rounds: Targeted rebuttals pointing out flaws in Pro's reasoning
+
+**Moderator (Mia):**
+- Evaluates all arguments from both sides
+- Considers strength, coherence, evidence quality, and persuasiveness
+- Declares winner with justification
+
+## Sample Topics
+
+- Did we ever go to the moon?
+- Should artificial intelligence be regulated by governments?
+- Is remote work better than office work?
+- Democracy is the best form of government
+- Climate change requires immediate action
 
 ## Troubleshooting
 
@@ -219,27 +305,42 @@ python cli_tools/run_debate.py
 - Check that no firewall is blocking port 8000
 - Try accessing `http://localhost:8000/docs` in your browser
 
+### Issue: Wrong number of rounds
+
+**Problem**: Selecting 5 rounds but only getting 1-2 rounds
+
+**Solution**: This has been fixed in v2.2. Make sure you're using the latest code and restart the MCP server.
+
+## Development
+
+### Project Structure
+
+```
+debate_day/
+├── mcp_server/          # FastAPI server and database
+├── protocol/            # Message formats and communication protocol
+├── agents/              # Autonomous agent implementations
+│   ├── pro/            # Pro agent (Ava)
+│   ├── con/            # Con agent (Ben)
+│   └── mod/            # Moderator agent (Mia)
+├── flutter_ui/         # Flutter web application
+│   └── debate_day_web/ # Main Flutter app
+└── run_mcp_server.py   # MCP server launcher
+
+cli_tools/
+├── run_debate.py       # All-in-one debate runner
+├── start_debate.py     # Debate initializer
+├── view_debate.py      # Real-time debate viewer
+└── launch_agents.py    # Agent launcher
+```
+
+### Adding New Features
+
+1. **New Agent Types**: Add new directories under `debate_day/agents/`
+2. **UI Enhancements**: Modify Flutter components in `debate_day/flutter_ui/debate_day_web/lib/`
+3. **API Extensions**: Add new endpoints in `debate_day/mcp_server/routes.py`
+4. **Protocol Changes**: Update message formats in `debate_day/protocol/`
+
 ## License
 
-## Sample Topics
-
-- Did we ever go to the moon?
-- Should artificial intelligence be regulated by governments?
-- Is remote work better than office work?
-
-## Output Format
-
-The debate output follows a structured format:
-- Initial arguments from both sides
-- Rebuttals organized by round
-- Moderator evaluation and winner declaration
-
-## LLM Integration
-
-The system uses Ollama for generating dynamic, contextual responses. Each agent connects to Ollama independently and provides fallback responses if the LLM is unavailable.
-
-Key features of the LLM integration:
-- Context-aware prompts that include debate history
-- Round-specific prompt engineering for each agent
-- Fallback mechanism to ensure robustness
-- Clean-up of LLM responses to match debate format 
+MIT License - see LICENSE file for details. 

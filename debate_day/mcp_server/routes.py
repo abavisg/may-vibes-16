@@ -65,13 +65,15 @@ def _determine_next_speaker(debate_id: str, current_round: int, current_role: Ro
         return Role.CON
     elif current_role == Role.CON:
         # After CON speaks, check if we should continue to next round or end
-        # Rounds are 0-indexed, so if we have num_rounds=5, valid rounds are 0,1,2,3,4
-        # After CON speaks in the final round (current_round == num_rounds-1), go to moderator
-        if current_round >= debate.num_rounds - 1:
-            return Role.MOD
-        # Otherwise continue to next round with PRO
-        else:
+        # If user requested 5 rounds, we need rounds 0,1,2,3,4 (5 total rounds)
+        # After CON speaks in round 0, 1, 2, 3, continue to next round
+        # After CON speaks in round 4 (the final round), go to moderator
+        if current_round < debate.num_rounds - 1:
+            # Continue to next round with PRO
             return Role.PRO
+        else:
+            # Final round completed, go to moderator
+            return Role.MOD
     elif current_role == Role.MOD:
         # After moderator speaks, debate is over
         return None
@@ -92,14 +94,6 @@ def _update_debate_status_after_message(debate_id: str, message: MCPMessageRecor
     if not debate:
         return
     
-    # Determine next speaker
-    current_round = message.round
-    next_round = current_round
-    
-    # If CON just spoke and it's not the final round, increment round
-    if message.role == Role.CON and current_round < debate.num_rounds - 1:
-        next_round = current_round + 1
-    
     # If MOD just spoke, debate is finished
     if message.role == Role.MOD:
         db.update_debate_status(debate_id, SessionStatus.FINISHED)
@@ -112,13 +106,27 @@ def _update_debate_status_after_message(debate_id: str, message: MCPMessageRecor
         # No next turn after moderator
         return
     
-    # Determine who speaks next
-    next_speaker = _determine_next_speaker(debate_id, current_round, message.role)
+    # Determine next turn based on who just spoke and what round they were in
+    current_round = message.round
     
-    # If no next speaker, debate is finished
-    if next_speaker is None:
-        db.update_debate_status(debate_id, SessionStatus.FINISHED)
-        return
+    if message.role == Role.PRO:
+        # After PRO speaks, CON always goes next in the same round
+        next_speaker = Role.CON
+        next_round = current_round
+    elif message.role == Role.CON:
+        # After CON speaks, check if we should continue to next round or end
+        if current_round < debate.num_rounds - 1:
+            # Continue to next round with PRO
+            next_speaker = Role.PRO
+            next_round = current_round + 1
+        else:
+            # Final round completed, go to moderator
+            next_speaker = Role.MOD
+            next_round = current_round
+    else:
+        # Shouldn't happen for SYSTEM messages, but just in case
+        next_speaker = Role.PRO
+        next_round = current_round
     
     # Update the current turn
     turn = AgentTurn(
